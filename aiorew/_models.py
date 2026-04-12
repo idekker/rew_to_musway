@@ -328,16 +328,16 @@ class RoomCurveSettings:
 @dataclass
 class ProcessResult:
     """Result from a long-running REW command."""
-    id: Optional[int] = None
+    processName: Optional[int] = None
     message: Optional[str] = None
     # Additional key/value results from the command (e.g. waterfall, spectrogram data)
     data: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "ProcessResult":
-        known = {"id", "message"}
+        known = {"processName", "message"}
         return cls(
-            id=d.get("id"),
+            processName=d.get("processName"),
             message=d.get("message"),
             data={k: v for k, v in d.items() if k not in known},
         )

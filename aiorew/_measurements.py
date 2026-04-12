@@ -366,12 +366,14 @@ class MeasurementsClient:
         """Return the list of commands available for measurement *uuid*."""
         return await self._http.get(f"/measurements/{uuid}/commands")
 
-    async def run_command(
+    async def _run_command(
         self,
         uuid: UUID,
         command: str,
         parameters: Optional[Dict[str, Any]] = None,
-    ) -> None:
+        poll_interval: float = 0.5,
+        timeout: Optional[float] = None,
+    ) -> ProcessResult:
         """
         Issue a single-measurement command (e.g. 'Smooth', 'Scale IR', 'Add SPL offset').
 
@@ -383,11 +385,22 @@ class MeasurementsClient:
             Command name. Available names: get_commands(uuid).
         parameters:
             Optional dict of command parameters (varies by command).
+        poll_interval:
+            Seconds between status polls (default 0.5).
+        timeout:
+            Optional maximum seconds to wait before raising TimeoutError.
+
+        Returns
+        -------
+        ProcessResult with the command outcome.
         """
         body: Dict[str, Any] = {"command": command}
         if parameters:
             body["parameters"] = parameters
-        await self._http.post(f"/measurements/{uuid}/command", body)
+        rsp = await self._http.post(f"/measurements/{uuid}/command", body)
+        command_message = rsp.get("message")
+
+        return await self._wait_for_completion(command_message, poll_interval, timeout)
 
     # ------------------------------------------------------------------
     # EQ commands (per-measurement, with polling)
@@ -397,7 +410,26 @@ class MeasurementsClient:
         """Return the list of EQ commands (global, not per-measurement)."""
         return await self._http.get("/measurements/eq/commands")
 
-    async def run_eq_command(
+    async def calculate_target_level(
+        self,
+        uuid: UUID,
+    ) -> None:
+        await self._run_eq_command(uuid, "Calculate target level")
+
+    async def match_target(
+        self,
+        uuid: UUID,
+    ) -> None:
+        await self._run_eq_command(uuid, "Match target")
+
+    async def generate_predicted_measurement(
+        self,
+        uuid: UUID,
+    ) -> Dict[str, Any] | None:
+        rsp = await self._run_eq_command(uuid, "Generate predicted measurement")
+        return rsp.data.get("results")
+
+    async def _run_eq_command(
         self,
         uuid: UUID,
         command: str,
@@ -426,18 +458,10 @@ class MeasurementsClient:
         -------
         ProcessResult with the command outcome.
         """
-        await self._http.post(f"/measurements/{uuid}/eq/command", {"command": command})
+        rsp = await self._http.post(f"/measurements/{uuid}/eq/command", {"command": command})
+        command_message = rsp.get("message")
 
-        async def _check() -> Any:
-            return await self._http.get("/measurements/process-result")
-
-        result_data = await self._http.poll_until(
-            _check,
-            condition=lambda d: isinstance(d, dict) and d.get("message") is not None,
-            poll_interval=poll_interval,
-            timeout=timeout,
-        )
-        return ProcessResult.from_dict(result_data)
+        return await self._wait_for_completion(command_message, poll_interval, timeout)
 
     # ------------------------------------------------------------------
     # Process measurements (multi-measurement, with polling)
@@ -502,15 +526,37 @@ class MeasurementsClient:
         if parameters:
             body["parameters"] = parameters
 
-        await self._http.post("/measurements/process-measurements", body)
+        rsp = await self._http.post("/measurements/process-measurements", body)
+        command_message = rsp.get("message")
 
+        return await self._wait_for_completion(command_message, poll_interval, timeout)
+
+    # ------------------------------------------------------------------
+    # Internal command completion
+    # ------------------------------------------------------------------
+
+    async def _wait_for_completion(
+            self,
+            command_message: str,
+            poll_interval: float = 0.5,
+            timeout: Optional[float] = None
+    ) -> ProcessResult:
         async def _check() -> Any:
-            return await self._http.get("/measurements/process-result")
+            rsp = await self._http.get("/measurements/process-result")
+            return rsp
+
+        def _condition(d, cmd_msg) -> bool:
+            return (isinstance(d, dict) and
+                    d.get("processName") is not None and
+                    cmd_msg.startswith(d.get("processName")) and
+                    d.get("message") is not None and
+                    d.get("message") == "Completed")
 
         result_data = await self._http.poll_until(
             _check,
-            condition=lambda d: isinstance(d, dict) and d.get("message") is not None,
+            condition=lambda d: _condition(d, command_message),
             poll_interval=poll_interval,
             timeout=timeout,
         )
+
         return ProcessResult.from_dict(result_data)

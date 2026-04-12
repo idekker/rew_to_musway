@@ -160,7 +160,7 @@ class EQDefaultsClient:
         """Return the list of global EQ command names."""
         return await self._http.get("/eq/commands")
 
-    async def run_command(
+    async def _run_command(
         self, command: str, parameters: Optional[Dict[str, Any]] = None
     ) -> None:
         """
