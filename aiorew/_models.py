@@ -267,10 +267,18 @@ class Equaliser:
         return {"manufacturer": self.manufacturer, "model": self.model}
 
 
+class TargetShape(Enum):
+    FULL_RANGE = "Full range"
+    BASS_LIMITED = "Bass limited"
+    SUBWOOFER = "Subwoofer"
+    DRIVER = "Driver"
+    NONE = "None"
+
+
 @dataclass
 class TargetSettings:
     """EQ target shape settings for a measurement."""
-    shape: str
+    shape: TargetShape
     bassManagementSlopedBPerOctave: int
     bassManagementCutoffHz: float
     lowFreqSlopedBPerOctave: int
@@ -283,7 +291,7 @@ class TargetSettings:
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "TargetSettings":
         return cls(
-            shape=d["shape"],
+            shape=TargetShape(d["shape"]),
             bassManagementSlopedBPerOctave=d["bassManagementSlopedBPerOctave"],
             bassManagementCutoffHz=d["bassManagementCutoffHz"],
             lowFreqSlopedBPerOctave=d["lowFreqSlopedBPerOctave"],
@@ -296,7 +304,7 @@ class TargetSettings:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "shape": self.shape,
+            "shape": self.shape.value,
             "bassManagementSlopedBPerOctave": self.bassManagementSlopedBPerOctave,
             "bassManagementCutoffHz": self.bassManagementCutoffHz,
             "lowFreqSlopedBPerOctave": self.lowFreqSlopedBPerOctave,
@@ -484,6 +492,16 @@ class OutputCalConfig:
 # Input levels
 # ---------------------------------------------------------------------------
 
+class InputLevelsUnit(Enum):
+    SPL = "SPL"
+    DBFS = "DBFS"
+    DBU = "dBu"
+    DBV = "dBV"
+    DBW = "dBW"
+    V = "V"
+    W = "W"
+
+
 @dataclass
 class InputLevels:
     """
@@ -491,7 +509,7 @@ class InputLevels:
 
     rms and peak are lists of per-channel values.
     """
-    unit: str
+    unit: InputLevelsUnit
     rms: List[float]
     peak: List[float]
     timeSpanSeconds: float
@@ -499,7 +517,7 @@ class InputLevels:
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "InputLevels":
         return cls(
-            unit=d["unit"],
+            unit=InputLevelsUnit(d["unit"]),
             rms=list(d["rms"]),
             peak=list(d["peak"]),
             timeSpanSeconds=d["timeSpanSeconds"],
@@ -510,23 +528,51 @@ class InputLevels:
 # Generator
 # ---------------------------------------------------------------------------
 
+class GeneratorSignal(Enum):
+    SINE = "sine"
+    SQUARE = "square"
+    SAW_TOOTH = "sawtooth"
+    TONE_BURST = "toneburst"
+    CEA_BURST = "cea-burst"
+    J_TEST = "j-test"
+    DUAL_TONE = "dualtone"
+    TRIPLE_TONE = "tripletone"
+    QUAD_TONE = "quadtone"
+    MULTI_TONE = "multitone"
+    PINK_NOISE = "pinknoise"
+    WHITE_NOISE = "whitenoise"
+    PINK_PERIODIC = "pinkpn"
+    WHITE_PERIODIC = "whitepn"
+    LINEAR_SWEEP = "linearsweep"
+    LOG_SWEEP = "logsweep"
+    MEAS_SWEEP = "meassweep"
+    FSAF_NOISE = "fsafnoise"
+
+
+class GeneratorLevelUnit(Enum):
+    DBU = "dBu"
+    DBV = "dBV"
+    V = "V"
+    DBFS = "dBFS"
+
+
 @dataclass
 class GeneratorStatus:
     """Current state of the REW signal generator."""
     enabled: bool
     playing: bool
-    signal: Optional[str] = None
+    signal: Optional[GeneratorSignal] = None
     level: Optional[float] = None
-    levelUnit: Optional[str] = None
+    levelUnit: Optional[GeneratorLevelUnit] = None
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "GeneratorStatus":
         return cls(
             enabled=d.get("enabled", False),
             playing=d.get("playing", False),
-            signal=d.get("signal"),
+            signal=GeneratorSignal(d.get("signal")) if d.get("signal") else None,
             level=d.get("level"),
-            levelUnit=d.get("levelUnit"),
+            levelUnit=GeneratorLevelUnit(d.get("levelUnit")) if d.get("levelUnit") else None,
         )
 
 
@@ -534,12 +580,29 @@ class GeneratorStatus:
 # SPL meter
 # ---------------------------------------------------------------------------
 
+class SPLMode(Enum):
+    SPL = "SPL"
+    LEQ = "LEQ"
+    SEL = "SEL"
+
+
+class SPLWeighing(Enum):
+    A = "A"
+    C = "C"
+    Z = "Z"
+
+
+class SPLFilter(Enum):
+    SLOW = "Slow"
+    FAST = "Fast"
+
+
 @dataclass
 class SPLMeterConfiguration:
     """Configuration for a single REW SPL meter."""
-    mode: str = "SPL"
-    weighting: str = "C"
-    filter: str = "Slow"
+    mode: SPLMode = SPLMode.SPL
+    weighting: SPLWeighing = SPLWeighing.C
+    filter: SPLFilter = SPLFilter.SLOW
     highPassActive: bool = False
     rollingLeqActive: bool = False
     rollingLeqMinutes: int = 15
@@ -547,9 +610,9 @@ class SPLMeterConfiguration:
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "SPLMeterConfiguration":
         return cls(
-            mode=d.get("mode", "SPL"),
-            weighting=d.get("weighting", "C"),
-            filter=d.get("filter", "Slow"),
+            mode=SPLMode(d.get("mode")),
+            weighting=SPLWeighing(d.get("weighting")),
+            filter=SPLFilter(d.get("filter")),
             highPassActive=d.get("highPassActive", False),
             rollingLeqActive=d.get("rollingLeqActive", False),
             rollingLeqMinutes=d.get("rollingLeqMinutes", 15),
@@ -557,9 +620,9 @@ class SPLMeterConfiguration:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "mode": self.mode,
-            "weighting": self.weighting,
-            "filter": self.filter,
+            "mode": self.mode.value,
+            "weighting": self.weighting.value,
+            "filter": self.filter.value,
             "highPassActive": self.highPassActive,
             "rollingLeqActive": self.rollingLeqActive,
             "rollingLeqMinutes": self.rollingLeqMinutes,
@@ -570,8 +633,8 @@ class SPLMeterConfiguration:
 class SPLValues:
     """SPL meter readings."""
     meterNumber: int
-    weighting: str
-    filter: str
+    weighting: SPLWeighing
+    filter: SPLFilter
     spl: float
     leq: float
     isRollingLeq: bool
@@ -585,8 +648,8 @@ class SPLValues:
     def from_dict(cls, d: Dict[str, Any]) -> "SPLValues":
         return cls(
             meterNumber=d["meterNumber"],
-            weighting=d["weighting"],
-            filter=d["filter"],
+            weighting=SPLWeighing(d["weighting"]),
+            filter=SPLFilter(d["filter"]),
             spl=d["spl"],
             leq=d["leq"],
             isRollingLeq=d["isRollingLeq"],

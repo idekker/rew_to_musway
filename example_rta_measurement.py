@@ -32,8 +32,7 @@ from datetime import datetime
 # print() output appears immediately rather than at process exit.
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
 
-from aiorew import REWClient, RTAConfiguration
-
+from aiorew import REWClient, RTAConfiguration, GeneratorSignal
 
 # ---------------------------------------------------------------------------
 # Configuration — adjust as needed
@@ -42,12 +41,12 @@ from aiorew import REWClient, RTAConfiguration
 REW_HOST = "localhost"
 REW_PORT = 4735
 
-GENERATOR_SIGNAL  = "pinkpn"   # periodic pink noise — as returned by generator.get_signals()
-GENERATOR_LEVEL   = -12.0      # dBFS
+GENERATOR_SIGNAL = GeneratorSignal.PINK_PERIODIC  # periodic pink noise — as returned by generator.get_signals()
+GENERATOR_LEVEL = -12.0  # dBFS
 
-RTA_MAX_AVERAGES  = 100
-GENERATOR_WARMUP  = 3.0    # seconds to let the generator stabilise before reading levels
-SPL_WARMUP        = 1.5    # pause after starting SPL meter before reading
+RTA_MAX_AVERAGES = 100
+GENERATOR_WARMUP = 3.0  # seconds to let the generator stabilise before reading levels
+SPL_WARMUP = 1.5  # pause after starting SPL meter before reading
 
 
 # ---------------------------------------------------------------------------
@@ -55,7 +54,7 @@ SPL_WARMUP        = 1.5    # pause after starting SPL meter before reading
 # ---------------------------------------------------------------------------
 
 def _fmt_levels(levels) -> str:
-    rms_str  = ", ".join(f"{v:.1f}" for v in levels.rms)
+    rms_str = ", ".join(f"{v:.1f}" for v in levels.rms)
     peak_str = ", ".join(f"{v:.1f}" for v in levels.peak)
     return f"RMS=[{rms_str}] Peak=[{peak_str}] {levels.unit}"
 
@@ -107,7 +106,7 @@ async def main() -> None:
         await rew.rta.set_configuration(RTAConfiguration(
             stopAt=True,
             stopAtValue=RTA_MAX_AVERAGES,
-            stopGeneratorWithRTA=False,   # we stop the generator ourselves below
+            stopGeneratorWithRTA=False,  # we stop the generator ourselves below
         ))
 
         print("Starting RTA…")
@@ -136,7 +135,7 @@ async def main() -> None:
         # ------------------------------------------------------------------ #
         print("Reading output device and channel configuration…")
         try:
-            output_device  = await rew.audio.get_java_output_device()
+            output_device = await rew.audio.get_java_output_device()
         except Exception as exc:
             output_device = f"(unavailable: {exc})"
 

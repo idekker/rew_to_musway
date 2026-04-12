@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from ._http import _HTTPClient
-from ._models import GeneratorStatus
+from ._models import GeneratorStatus, GeneratorSignal
 
 
 class GeneratorClient:
@@ -39,18 +39,16 @@ class GeneratorClient:
         """Return the list of available signal names."""
         return await self._http.get("/generator/signals")
 
-    async def get_signal(self) -> str:
+    async def get_signal(self) -> GeneratorSignal:
         """Return the currently selected signal name."""
         d = await self._http.get("/generator/signal")
-        return d["signal"] if isinstance(d, dict) else d
+        return GeneratorSignal(d["signal"])
 
-    async def set_signal(self, signal_name: str) -> None:
+    async def set_signal(self, signal_name: GeneratorSignal) -> None:
         """
-        Select a signal by name (e.g. 'pinkpn', 'pinknoise', 'whitenoise', 'sine').
-
-        Available names: get_signals().
+        Select a signal.
         """
-        await self._http.post("/generator/signal", {"signal": signal_name})
+        await self._http.post("/generator/signal", {"signal": signal_name.value})
 
     # ------------------------------------------------------------------
     # Signal configuration

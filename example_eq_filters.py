@@ -28,14 +28,11 @@ import sys
 import io
 from pathlib import Path
 
-from aiorew._models import Smoothing
-
 # Force UTF-8 output on cp1252 consoles (Windows), with line buffering so
 # print() output appears immediately rather than at process exit.
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
 
-from aiorew import REWClient, Equaliser, MatchTargetSettings
-
+from aiorew import REWClient, Equaliser, MatchTargetSettings, Smoothing, TargetShape
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -124,9 +121,9 @@ async def main() -> None:
         target = await rew.measurements.get_target_settings(uuid)
         print(f"  Current shape: {target.shape!r}")
 
-        if target.shape != "Full range":
+        if target.shape != TargetShape.FULL_RANGE:
             print("Setting target shape to 'Full range'...")
-            target.shape = "Full range"
+            target.shape = TargetShape.FULL_RANGE
             await rew.measurements.set_target_settings(uuid, target)
             print("  Done.")
 

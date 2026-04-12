@@ -23,7 +23,7 @@ Example::
                 stopAtValue=100,
                 stopGeneratorWithRTA=True,
             ))
-            await rew.generator.set_signal("pinknoise")
+            await rew.generator.set_signal(GeneratorSignal.PINK_NOISE)
             await rew.generator.play()
             await rew.rta.start()
             await rew.rta.wait_until_stopped()
@@ -61,6 +61,9 @@ from ._models import (
     TargetSettings,
     decode_float_array,
     encode_float_array,
+    TargetShape,
+    Smoothing,
+    GeneratorSignal, InputLevelsUnit, GeneratorLevelUnit, SPLMode, SPLWeighing, SPLFilter,
 )
 from uuid import UUID
 
@@ -81,15 +84,23 @@ __all__ = [
     "TargetSettings",
     "RoomCurveSettings",
     "ProcessResult",
+    "TargetShape",
+    "Smoothing",
     # Generator
+    "GeneratorSignal",
+    "GeneratorLevelUnit",
     "GeneratorStatus",
     # SPL meter
+    "SPLMode",
+    "SPLWeighing",
+    "SPLFilter",
     "SPLMeterConfiguration",
     "SPLValues",
     # RTA
     "RTAConfiguration",
     "RTAStatus",
     # Input levels
+    "InputLevelsUnit",
     "InputLevels",
     # EQ defaults
     "MatchTargetSettings",
