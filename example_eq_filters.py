@@ -28,6 +28,8 @@ import sys
 import io
 from pathlib import Path
 
+from aiorew._models import Smoothing
+
 # Force UTF-8 output on cp1252 consoles (Windows), with line buffering so
 # print() output appears immediately rather than at process exit.
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
@@ -96,6 +98,9 @@ async def main() -> None:
         m = measurements[0]
         uuid = m.uuid
         print(f"  Loaded: '{m.title}'  UUID: {uuid}")
+
+        print("Apply 1/6th smoothing...")
+        await rew.measurements.apply_smoothing(uuid, Smoothing.S6)
 
         # ------------------------------------------------------------------ #
         # 3. Set equaliser to Musway M DSP 31 Band

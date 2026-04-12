@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
@@ -105,7 +106,7 @@ class FrequencyResponse:
         startFreq + i * freqStep
     """
     unit: str
-    smoothing: str
+    smoothing: Smoothing
     startFreq: float
     magnitude: np.ndarray
     ppo: Optional[int] = None          # log-spaced
@@ -116,13 +117,27 @@ class FrequencyResponse:
     def from_dict(cls, d: Dict[str, Any]) -> "FrequencyResponse":
         return cls(
             unit=d["unit"],
-            smoothing=d["smoothing"],
+            smoothing=Smoothing(d["smoothing"]),
             startFreq=d["startFreq"],
             magnitude=decode_float_array(d["magnitude"]),
             ppo=d.get("ppo"),
             freqStep=d.get("freqStep"),
             phase=decode_float_array(d["phase"]) if "phase" in d else None,
         )
+
+
+class Smoothing(Enum):
+    NONE = "None"
+    S1 = "1/1"
+    S2 = "1/2"
+    S3 = "1/3"
+    S6 = "1/6"
+    S12 = "1/12"
+    S24 = "1/24"
+    S48 = "1/48"
+    VAR = "Var"
+    PSY = "Psy"
+    ERB = "ERB"
 
 
 @dataclass
@@ -601,7 +616,7 @@ class RTAConfiguration:
     stopAtValue is a string.
     """
     mode: Optional[str] = None
-    smoothing: Optional[str] = None
+    smoothing: Optional[Smoothing] = None
     fftLength: Optional[str] = None            # e.g. "64k"
     window: Optional[str] = None
     averaging: Optional[str] = None
@@ -619,7 +634,7 @@ class RTAConfiguration:
     def from_dict(cls, d: Dict[str, Any]) -> "RTAConfiguration":
         return cls(
             mode=d.get("mode"),
-            smoothing=d.get("smoothing"),
+            smoothing=Smoothing(d.get("smoothing")) if "smoothing" in d else None,
             fftLength=d.get("fftLength"),
             window=d.get("window"),
             averaging=d.get("averaging"),
@@ -637,7 +652,7 @@ class RTAConfiguration:
     def to_dict(self) -> Dict[str, Any]:
         return {k: v for k, v in {
             "mode": self.mode,
-            "smoothing": self.smoothing,
+            "smoothing": self.smoothing.value if self.smoothing else None,
             "fftLength": self.fftLength,
             "window": self.window,
             "averaging": self.averaging,

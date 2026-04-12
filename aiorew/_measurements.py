@@ -31,7 +31,7 @@ from ._models import (
     MeasurementSummary,
     ProcessResult,
     RoomCurveSettings,
-    TargetSettings,
+    TargetSettings, Smoothing,
 )
 
 
@@ -365,6 +365,10 @@ class MeasurementsClient:
     async def get_commands(self, uuid: UUID) -> List[str]:
         """Return the list of commands available for measurement *uuid*."""
         return await self._http.get(f"/measurements/{uuid}/commands")
+
+    async def apply_smoothing(self, uuid: UUID, amount: Smoothing) -> None:
+        """Apply smoothing to measurement *uuid* (e.g. '1/12', '1/3', 'None')."""
+        await self._run_command(uuid, "Smooth", {"smoothing": amount.value})
 
     async def _run_command(
         self,
