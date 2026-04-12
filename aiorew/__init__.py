@@ -1,5 +1,5 @@
 """
-aiorew — async Python client for the REW (Room EQ Wizard) REST API.
+aiorew - async Python client for the REW (Room EQ Wizard) REST API.
 
 Public surface::
 

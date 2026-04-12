@@ -1,5 +1,5 @@
 """
-tunest_pc — Python automation library for Tunest PC (TUNEST_PC_V1).
+tunest_pc - Python automation library for Tunest PC (TUNEST_PC_V1).
 
 Public surface::
 

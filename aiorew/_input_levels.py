@@ -1,5 +1,5 @@
 """
-_input_levels.py — InputLevelsClient for REW input level monitoring.
+_input_levels.py - InputLevelsClient for REW input level monitoring.
 
 Covers /input-levels/* endpoints.
 """
@@ -14,7 +14,7 @@ class InputLevelsClient:
     """
     Start/stop REW input level monitoring and read the latest levels.
 
-    Instantiated by REWClient — do not construct directly.
+    Instantiated by REWClient - do not construct directly.
     """
 
     def __init__(self, http: _HTTPClient) -> None:

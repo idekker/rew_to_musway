@@ -1,5 +1,5 @@
 """
-_eq.py — EQDefaultsClient for REW global EQ default settings.
+_eq.py - EQDefaultsClient for REW global EQ default settings.
 
 Covers /eq/* endpoints:
   - Equaliser list / manufacturers
@@ -23,10 +23,10 @@ class EQDefaultsClient:
     """
     Read and write REW's global EQ defaults (applied to new measurements).
 
-    These settings are distinct from per-measurement settings — see
+    These settings are distinct from per-measurement settings - see
     MeasurementsClient for per-measurement EQ control.
 
-    Instantiated by REWClient — do not construct directly.
+    Instantiated by REWClient - do not construct directly.
     """
 
     def __init__(self, http: _HTTPClient) -> None:
@@ -134,7 +134,7 @@ class EQDefaultsClient:
             Path to the house curve file (forward slashes recommended).
         log_interpolation:
             Whether to use log interpolation when reading the file.
-            Must be set before the file path — this method handles the order.
+            Must be set before the file path - this method handles the order.
         """
         await self._http.post("/eq/house-curve-log-interpolation", log_interpolation)
         await self._http.post("/eq/house-curve", path)

@@ -1,5 +1,5 @@
 """
-example_eq_filters.py — EQ filter workflow using aiorew.
+example_eq_filters.py - EQ filter workflow using aiorew.
 
 Workflow
 --------
@@ -43,7 +43,7 @@ from aiorew import REWClient, Equaliser, MatchTargetSettings, Smoothing, TargetS
 REW_HOST = "localhost"
 REW_PORT = 4735
 
-# Script directory — paths are resolved relative to it
+# Script directory - paths are resolved relative to it
 SCRIPT_DIR = Path(__file__).parent
 TEST_FILES = SCRIPT_DIR / "test_files"
 

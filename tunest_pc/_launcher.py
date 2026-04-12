@@ -62,7 +62,7 @@ def _click_model_button(dialog_hwnd: int, model: str) -> None:
     Click the model button for *model* inside the model-selection window.
 
     The model selection UI is rendered inside the main Qt5152QWindowIcon window
-    while it is in its 600×400 startup state — there is no separate HWND.
+    while it is in its 600×400 startup state - there is no separate HWND.
     """
     if model not in MODEL_POSITIONS:
         raise TunestAutomationError(
@@ -84,7 +84,7 @@ def _click_model_button(dialog_hwnd: int, model: str) -> None:
     _send_click(l + rel_x, t + rel_y)
     time.sleep(0.3)
 
-    # Click the Enter button — use centre of its full width (40..562 → cx=301)
+    # Click the Enter button - use centre of its full width (40..562 -> cx=301)
     enter_x = (MODEL_ENTER_BUTTON_REL[0] + 562) // 2  # ≈ 301
     enter_y = MODEL_ENTER_BUTTON_REL[1] + 14  # centre vertically (H=28)
     _send_click(l + enter_x, t + enter_y)
@@ -151,7 +151,7 @@ def launch_and_connect(
         hwnd = _find_main_hwnd()
         if hwnd:
             if _is_main_ready(hwnd):
-                # Window is fully loaded — done.
+                # Window is fully loaded - done.
                 return hwnd
 
             # Window exists but is still small: this IS the model-selection

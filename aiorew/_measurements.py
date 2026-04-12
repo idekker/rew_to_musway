@@ -1,5 +1,5 @@
 """
-_measurements.py — MeasurementsClient for REW measurement access and processing.
+_measurements.py - MeasurementsClient for REW measurement access and processing.
 
 Covers /measurements/* endpoints:
   - List, get, delete measurements
@@ -12,8 +12,8 @@ Covers /measurements/* endpoints:
   - Target settings, target level, room curve settings
   - Target response, EQ predicted response
   - Per-measurement commands (Smooth, Scale IR, Add SPL offset, etc.)
-  - EQ commands (Match target, Optimise gains, etc.) — with polling
-  - Process-measurements (Align SPL, Arithmetic, etc.) — with polling
+  - EQ commands (Match target, Optimise gains, etc.) - with polling
+  - Process-measurements (Align SPL, Arithmetic, etc.) - with polling
 """
 
 from __future__ import annotations
@@ -41,10 +41,10 @@ class MeasurementsClient:
     Access and manipulate REW measurements.
 
     All methods that operate on a specific measurement accept *uuid* as the
-    first argument.  Always use UUIDs — indices change when measurements are
+    first argument.  Always use UUIDs - indices change when measurements are
     added, removed, or grouped.
 
-    Instantiated by REWClient — do not construct directly.
+    Instantiated by REWClient - do not construct directly.
     """
 
     def __init__(self, http: _HTTPClient) -> None:

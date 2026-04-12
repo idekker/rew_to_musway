@@ -1,5 +1,5 @@
 """
-_audio.py — AudioClient for REW audio device and calibration control.
+_audio.py - AudioClient for REW audio device and calibration control.
 
 Covers:
   - Driver selection (/audio/driver)
@@ -9,28 +9,28 @@ Covers:
   - Input / output calibration (/audio/input-cal, /audio/output-cal)
 
 Response-shape notes (confirmed against live API):
-  - /audio/driver          → {"driver": <str>}
-  - /audio/samplerate      → {"value": <float>, "unit": "Hz"}
-  - /audio/samplerates     → [{"value": <float>, "unit": "Hz"}, ...]
-  - /audio/java/input-device  → {"device": <str>}
-  - /audio/java/output-device → {"device": <str>}
-  - /audio/java/input      → {"input": <str>}   (assumed; unwrap "input" key)
-  - /audio/java/output     → {"output": <str>}  (assumed; unwrap "output" key)
-  - /audio/java/input-channel  → {"channel": <int>}
-  - /audio/java/ref-input-channel → {"channel": <int>}
-  - /audio/java/output-channel → {"channel": <str>}   (may be "L+R")
-  - /audio/java/num-input-channels → {"value": <int>} (assumed)
-  - /audio/asio/device     → {"device": <str>}
-  - /audio/asio/input      → {"input": <str>}   (assumed)
-  - /audio/asio/output     → {"output": <str>}  (assumed)
-  - /audio/java/input-devices  → plain list of str
-  - /audio/java/output-devices → plain list of str
-  - /audio/java/inputs     → plain list of str
-  - /audio/java/outputs    → plain list of str
-  - /audio/asio/devices    → plain list of str
-  - /audio/asio/inputs     → plain list of str
-  - /audio/asio/outputs    → plain list of str
-  - /audio/driver-types    → plain list of str
+  - /audio/driver          -> {"driver": <str>}
+  - /audio/samplerate      -> {"value": <float>, "unit": "Hz"}
+  - /audio/samplerates     -> [{"value": <float>, "unit": "Hz"}, ...]
+  - /audio/java/input-device  -> {"device": <str>}
+  - /audio/java/output-device -> {"device": <str>}
+  - /audio/java/input      -> {"input": <str>}   (assumed; unwrap "input" key)
+  - /audio/java/output     -> {"output": <str>}  (assumed; unwrap "output" key)
+  - /audio/java/input-channel  -> {"channel": <int>}
+  - /audio/java/ref-input-channel -> {"channel": <int>}
+  - /audio/java/output-channel -> {"channel": <str>}   (may be "L+R")
+  - /audio/java/num-input-channels -> {"value": <int>} (assumed)
+  - /audio/asio/device     -> {"device": <str>}
+  - /audio/asio/input      -> {"input": <str>}   (assumed)
+  - /audio/asio/output     -> {"output": <str>}  (assumed)
+  - /audio/java/input-devices  -> plain list of str
+  - /audio/java/output-devices -> plain list of str
+  - /audio/java/inputs     -> plain list of str
+  - /audio/java/outputs    -> plain list of str
+  - /audio/asio/devices    -> plain list of str
+  - /audio/asio/inputs     -> plain list of str
+  - /audio/asio/outputs    -> plain list of str
+  - /audio/driver-types    -> plain list of str
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ class AudioClient:
     """
     Control REW's audio input/output devices and calibration.
 
-    Instantiated by REWClient — do not construct directly.
+    Instantiated by REWClient - do not construct directly.
     """
 
     def __init__(self, http: _HTTPClient) -> None:
@@ -87,7 +87,7 @@ class AudioClient:
         return [int(r["value"]) for r in items]
 
     # ------------------------------------------------------------------
-    # Java — devices
+    # Java - devices
     # ------------------------------------------------------------------
 
     async def get_java_input_devices(self) -> List[str]:
@@ -117,7 +117,7 @@ class AudioClient:
         await self._http.post("/audio/java/output-device", device)
 
     # ------------------------------------------------------------------
-    # Java — inputs / outputs
+    # Java - inputs / outputs
     # ------------------------------------------------------------------
 
     async def get_java_inputs(self) -> List[str]:
@@ -149,7 +149,7 @@ class AudioClient:
         await self._http.post("/audio/java/output", output_name)
 
     # ------------------------------------------------------------------
-    # Java — channels
+    # Java - channels
     # ------------------------------------------------------------------
 
     async def get_java_input_channel(self) -> int:
@@ -186,7 +186,7 @@ class AudioClient:
         return int(d)
 
     # ------------------------------------------------------------------
-    # ASIO — device
+    # ASIO - device
     # ------------------------------------------------------------------
 
     async def get_asio_devices(self) -> List[str]:
@@ -203,7 +203,7 @@ class AudioClient:
         await self._http.post("/audio/asio/device", device)
 
     # ------------------------------------------------------------------
-    # ASIO — inputs / outputs
+    # ASIO - inputs / outputs
     # ------------------------------------------------------------------
 
     async def get_asio_inputs(self) -> List[str]:

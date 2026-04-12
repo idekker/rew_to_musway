@@ -1,5 +1,5 @@
 """
-_models.py — typed dataclasses for all REW API request/response shapes.
+_models.py - typed dataclasses for all REW API request/response shapes.
 
 Naming follows the REW API documentation. All fields that are absent on some
 measurement types (e.g. RTA vs sweep) are typed as Optional.
@@ -46,7 +46,7 @@ class MeasurementSummary:
     """
     Summary metadata for a single REW measurement.
 
-    *uuid* is the stable identifier — use it for all sub-resource calls.
+    *uuid* is the stable identifier - use it for all sub-resource calls.
     Group fields and IR timing fields are absent on some measurement types
     (e.g. RTA-derived measurements have no IR timing).
     """
@@ -149,7 +149,7 @@ class ImpulseResponse:
     """
     Impulse response data from the REW API.
 
-    Not available for RTA-derived measurements — the API returns 400 for those.
+    Not available for RTA-derived measurements - the API returns 400 for those.
     """
 
     unit: str

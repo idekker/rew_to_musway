@@ -1,5 +1,5 @@
 """
-_spl_meter.py — SPLMeterClient for REW SPL meter control.
+_spl_meter.py - SPLMeterClient for REW SPL meter control.
 
 Covers /spl-meter/{id}/* endpoints.
 
@@ -19,7 +19,7 @@ class SPLMeterClient:
     """
     Open, configure, run, and read REW SPL meters.
 
-    Instantiated by REWClient — do not construct directly.
+    Instantiated by REWClient - do not construct directly.
     """
 
     def __init__(self, http: _HTTPClient) -> None:

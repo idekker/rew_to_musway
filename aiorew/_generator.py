@@ -1,5 +1,5 @@
 """
-_generator.py — GeneratorClient for REW signal generator control.
+_generator.py - GeneratorClient for REW signal generator control.
 
 Covers /generator/* endpoints.
 """
@@ -16,7 +16,7 @@ class GeneratorClient:
     """
     Control the REW signal generator: signal selection, level, and play/stop.
 
-    Instantiated by REWClient — do not construct directly.
+    Instantiated by REWClient - do not construct directly.
     """
 
     def __init__(self, http: _HTTPClient) -> None:
@@ -66,7 +66,7 @@ class GeneratorClient:
         """
         Update the configuration for the currently selected signal.
 
-        Pass only the fields you want to change — both POST and PUT accept
+        Pass only the fields you want to change - both POST and PUT accept
         partial objects.
         """
         await self._http.post("/generator/signal/configuration", config)
@@ -86,7 +86,7 @@ class GeneratorClient:
     async def get_level(self) -> float:
         """Return the current output level in dBFS.
 
-        API returns {"value": <float>, "unit": "dBFS"} — the value is extracted.
+        API returns {"value": <float>, "unit": "dBFS"} - the value is extracted.
         """
         d = await self._http.get("/generator/level")
         return float(d["value"])
@@ -116,7 +116,7 @@ class GeneratorClient:
         """Return the current generator frequency in Hz, or None for non-tone signals.
 
         API returns {"unit": "Hz"} with no "value" key when the current signal
-        is not a tone (e.g. pink noise) — returns None in that case.
+        is not a tone (e.g. pink noise) - returns None in that case.
         """
         d = await self._http.get("/generator/frequency")
         if isinstance(d, dict):

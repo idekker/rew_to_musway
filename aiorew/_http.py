@@ -1,5 +1,5 @@
 """
-_http.py — shared async HTTP layer for aiorew.
+_http.py - shared async HTTP layer for aiorew.
 
 Wraps httpx.AsyncClient with:
 - Base URL construction from host + port
@@ -66,7 +66,7 @@ class _HTTPClient:
     def _http(self) -> httpx.AsyncClient:
         if self._client is None:
             raise RuntimeError(
-                "_HTTPClient not started — call start() or use as async context manager"
+                "_HTTPClient not started - call start() or use as async context manager"
             )
         return self._client
 

@@ -90,8 +90,8 @@ CHANNEL_STRIP_TOP_Y = 511  # window-relative Y of the top of each channel group
 # Offsets relative to (channel_left_x, CHANNEL_STRIP_TOP_Y):
 CH_HEADER_OFFSET = (80, 14)  # click target inside channel header (centre)
 CH_LEVEL_EDIT_OFFSET = (8, 33)
-CH_MUTE_CB_OFFSET = (57, 61)  # narrow 28x22 button — Mute
-CH_SOLO_CB_OFFSET = (8, 61)  # wide 47x24 button — Solo
+CH_MUTE_CB_OFFSET = (57, 61)  # narrow 28x22 button - Mute
+CH_SOLO_CB_OFFSET = (8, 61)  # wide 47x24 button - Solo
 CH_PHASE_CB_OFFSET = (57, 61)
 CH_ZERO_DEG_CB_OFFSET = (8, 88)
 CH_LINK_CB_OFFSET = (48, 88)

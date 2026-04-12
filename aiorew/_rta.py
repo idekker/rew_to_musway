@@ -1,5 +1,5 @@
 """
-_rta.py — RTAClient for REW Real-Time Analyzer control.
+_rta.py - RTAClient for REW Real-Time Analyzer control.
 
 Covers /rta/* endpoints:
   - Start / stop commands
@@ -21,7 +21,7 @@ class RTAClient:
     """
     Control the REW Real-Time Analyzer.
 
-    Instantiated by REWClient — do not construct directly.
+    Instantiated by REWClient - do not construct directly.
 
     Typical usage::
 
@@ -56,7 +56,7 @@ class RTAClient:
         """
         Save the current RTA data as a new measurement.
 
-        This method returns None — to obtain the UUID of the saved measurement
+        This method returns None - to obtain the UUID of the saved measurement
         use REWClient.save_rta(), which calls this method then queries the
         selected-measurement UUID.
         """
@@ -127,7 +127,7 @@ class RTAClient:
         """
         Update the RTA configuration.
 
-        The API requires a complete configuration object — partial objects are
+        The API requires a complete configuration object - partial objects are
         rejected with HTTP 400.  This method reads the current configuration
         first, merges the non-None fields from *config* into it, then POSTs
         the merged result.

@@ -1,5 +1,5 @@
 """
-example_rta_measurement.py — RTA measurement workflow using aiorew.
+example_rta_measurement.py - RTA measurement workflow using aiorew.
 
 Workflow
 --------
@@ -37,7 +37,7 @@ sys.stdout = io.TextIOWrapper(
 from aiorew import REWClient, RTAConfiguration, GeneratorSignal
 
 # ---------------------------------------------------------------------------
-# Configuration — adjust as needed
+# Configuration - adjust as needed
 # ---------------------------------------------------------------------------
 
 REW_HOST = "localhost"
@@ -45,7 +45,7 @@ REW_PORT = 4735
 
 GENERATOR_SIGNAL = (
     GeneratorSignal.PINK_PERIODIC
-)  # periodic pink noise — as returned by generator.get_signals()
+)  # periodic pink noise - as returned by generator.get_signals()
 GENERATOR_LEVEL = -12.0  # dBFS
 
 RTA_MAX_AVERAGES = 100
@@ -74,28 +74,28 @@ async def main() -> None:
         # ------------------------------------------------------------------ #
         # 1. Delete all existing measurements
         # ------------------------------------------------------------------ #
-        print("Deleting all existing measurements…")
+        print("Deleting all existing measurements...")
         await rew.measurements.delete_all()
         print("  Done.")
 
         # ------------------------------------------------------------------ #
         # 2. Start input-levels monitor
         # ------------------------------------------------------------------ #
-        print("Starting input-levels monitor…")
+        print("Starting input-levels monitor...")
         await rew.input_levels.start_monitoring()
         print("  Done.")
 
         # ------------------------------------------------------------------ #
         # 3. Configure and start the signal generator
         # ------------------------------------------------------------------ #
-        print(f"Setting signal to '{GENERATOR_SIGNAL}' at {GENERATOR_LEVEL} dBFS…")
+        print(f"Setting signal to '{GENERATOR_SIGNAL}' at {GENERATOR_LEVEL} dBFS...")
         await rew.generator.set_signal(GENERATOR_SIGNAL)
         await rew.generator.set_level(GENERATOR_LEVEL)
         await rew.generator.play()
         print(f"  Generator playing.")
 
         # Wait for the generator output to stabilise before any level readings.
-        print(f"Waiting {GENERATOR_WARMUP:.0f}s for generator to stabilise…")
+        print(f"Waiting {GENERATOR_WARMUP:.0f}s for generator to stabilise...")
         await asyncio.sleep(GENERATOR_WARMUP)
 
         # ------------------------------------------------------------------ #
@@ -107,7 +107,7 @@ async def main() -> None:
         # ------------------------------------------------------------------ #
         # 5. Configure RTA for 100 averages and start
         # ------------------------------------------------------------------ #
-        print(f"Configuring RTA: stopAt=True, stopAtValue={RTA_MAX_AVERAGES}…")
+        print(f"Configuring RTA: stopAt=True, stopAtValue={RTA_MAX_AVERAGES}...")
         await rew.rta.set_configuration(
             RTAConfiguration(
                 stopAt=True,
@@ -116,16 +116,16 @@ async def main() -> None:
             )
         )
 
-        print("Starting RTA…")
+        print("Starting RTA...")
         await rew.rta.start()
-        print(f"  Waiting for {RTA_MAX_AVERAGES} averages to complete…")
+        print(f"  Waiting for {RTA_MAX_AVERAGES} averages to complete...")
         await rew.rta.wait_until_stopped()
         print("  RTA stopped.")
 
         # ------------------------------------------------------------------ #
         # 6. Save the RTA data as a new measurement and retrieve its UUID
         # ------------------------------------------------------------------ #
-        print("Saving RTA data as measurement…")
+        print("Saving RTA data as measurement...")
         uuid = await rew.save_rta()
         print(f"  Saved - UUID: {uuid}")
 
@@ -134,13 +134,13 @@ async def main() -> None:
         # ------------------------------------------------------------------ #
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         title = f"RTA {timestamp}"
-        print(f"Renaming measurement to '{title}'…")
+        print(f"Renaming measurement to '{title}'...")
         await rew.measurements.set_title(uuid, title)
 
         # ------------------------------------------------------------------ #
         # 8. Add a note with output device and channel configuration
         # ------------------------------------------------------------------ #
-        print("Reading output device and channel configuration…")
+        print("Reading output device and channel configuration...")
         try:
             output_device = await rew.audio.get_java_output_device()
         except Exception as exc:
@@ -159,7 +159,7 @@ async def main() -> None:
             f"RTA averages: {RTA_MAX_AVERAGES}\n"
             f"Pre-measurement input levels: {_fmt_levels(pre_levels)}"
         )
-        print("Setting measurement note…")
+        print("Setting measurement note...")
         await rew.measurements.set_notes(uuid, note)
         print(f"  Note:\n{note}")
 
@@ -169,16 +169,16 @@ async def main() -> None:
         post_levels = await rew.input_levels.get_last_levels()
         print(f"Post-measurement input levels: {_fmt_levels(post_levels)}")
 
-        # Stop the input-levels monitor — we no longer need it.
+        # Stop the input-levels monitor - we no longer need it.
         await rew.input_levels.stop_monitoring()
 
         # ------------------------------------------------------------------ #
         # 10. SPL meter: open, start, read, close
         # ------------------------------------------------------------------ #
-        print("Opening SPL meter 1…")
+        print("Opening SPL meter 1...")
         await rew.spl_meter.open(meter_id=1)
         await rew.spl_meter.start(meter_id=1)
-        print(f"  Waiting {SPL_WARMUP:.1f}s for a stable SPL reading…")
+        print(f"  Waiting {SPL_WARMUP:.1f}s for a stable SPL reading...")
         await asyncio.sleep(SPL_WARMUP)
 
         spl = await rew.spl_meter.get_levels(meter_id=1)
@@ -195,13 +195,13 @@ async def main() -> None:
         # ------------------------------------------------------------------ #
         # 11. Stop the signal generator
         # ------------------------------------------------------------------ #
-        print("Stopping signal generator…")
+        print("Stopping signal generator...")
         await rew.generator.stop()
 
         # ------------------------------------------------------------------ #
         # 12. Save measurements
         # ------------------------------------------------------------------ #
-        print("Saving measurements…")
+        print("Saving measurements...")
         cwd = os.getcwd()
         await rew.measurements.save_all(rf"{cwd}\test_files\rta.mdat", timestamp)
         print("  Done.")

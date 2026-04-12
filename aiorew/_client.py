@@ -1,5 +1,5 @@
 """
-_client.py — REWClient, the top-level async client for the REW API.
+_client.py - REWClient, the top-level async client for the REW API.
 
 Usage::
 
@@ -75,7 +75,7 @@ class REWClient:
     def __init__(self, host: str = "localhost", port: int = 4735) -> None:
         self._http = _HTTPClient(host=host, port=port)
 
-        # Sub-clients — each exposes a focused slice of the API
+        # Sub-clients - each exposes a focused slice of the API
         self.audio = AudioClient(self._http)
         self.input_levels = InputLevelsClient(self._http)
         self.measurements = MeasurementsClient(self._http)
@@ -113,9 +113,9 @@ class REWClient:
 
         This is a convenience method that combines two separate API concerns:
 
-        1. ``rta.save()`` — issues ``POST /rta/command {"command": "Save current"}``,
+        1. ``rta.save()`` - issues ``POST /rta/command {"command": "Save current"}``,
            which creates a new measurement and selects it.
-        2. ``measurements.get_selected_uuid()`` — reads the UUID of the
+        2. ``measurements.get_selected_uuid()`` - reads the UUID of the
            measurement that REW selected after the save.
 
         The assumption that REW selects the newly saved measurement is

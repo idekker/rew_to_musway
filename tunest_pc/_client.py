@@ -1,5 +1,5 @@
 """
-TunestPC client — public API for Tunest PC (TUNEST_PC_V1) UI Automation.
+TunestPC client - public API for Tunest PC (TUNEST_PC_V1) UI Automation.
 """
 
 from __future__ import annotations
@@ -164,7 +164,7 @@ class TunestPC:
         Polls up to *max_wait* seconds.  Raises TunestAutomationError on timeout.
 
         The Qt app exposes its entire UI as custom control types, so we cannot
-        filter by control type.  Instead we find the leaf element by area — the
+        filter by control type.  Instead we find the leaf element by area - the
         smallest element that spatially contains the target point is the leaf.
         """
         l, t, _, _ = self._win_rect()
@@ -371,7 +371,7 @@ class TunestPC:
         self._select_channel(channel)
         time.sleep(0.1)
 
-        # Type combobox — centre of the 115x38 field
+        # Type combobox - centre of the 115x38 field
         tc = self._get_elem_at_rel(
             HP_TYPE_COMBO_REL[0] + 57,
             HP_TYPE_COMBO_REL[1] + 19,
@@ -469,7 +469,7 @@ class TunestPC:
             If True (default), choose "Reset selected channels".
             If False, choose "Reset all channels".
         """
-        # Use direct click — InvokePattern.Invoke() crashes for Qt buttons.
+        # Use direct click - InvokePattern.Invoke() crashes for Qt buttons.
         self._click_rel(RESET_EQ_BTN_REL[0] + 35, RESET_EQ_BTN_REL[1] + 11)
 
         # Wait for the Reset EQ dialog.
@@ -536,7 +536,7 @@ class TunestPC:
         """
         if self._bypass_active:
             return
-        # InvokePattern.Invoke() crashes for this button — use a direct mouse
+        # InvokePattern.Invoke() crashes for this button - use a direct mouse
         # click on the button centre instead.
         self._click_rel(BYPASS_EQ_BTN_REL[0] + 35, BYPASS_EQ_BTN_REL[1] + 11)
         self._bypass_active = True
