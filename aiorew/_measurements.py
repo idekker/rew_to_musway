@@ -19,6 +19,7 @@ Covers /measurements/* endpoints:
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 from ._http import _HTTPClient
 from ._models import (
@@ -64,12 +65,12 @@ class MeasurementsClient:
             return []
         return [MeasurementSummary.from_dict(v) for v in data.values()]
 
-    async def get(self, uuid: str) -> MeasurementSummary:
+    async def get(self, uuid: UUID) -> MeasurementSummary:
         """Return the summary for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}")
         return MeasurementSummary.from_dict(data)
 
-    async def delete(self, uuid: str) -> None:
+    async def delete(self, uuid: UUID) -> None:
         """Delete measurement *uuid*. No confirmation is requested."""
         await self._http.delete(f"/measurements/{uuid}")
 
@@ -81,24 +82,24 @@ class MeasurementsClient:
     # Selected measurement
     # ------------------------------------------------------------------
 
-    async def get_selected_uuid(self) -> str:
+    async def get_selected_uuid(self) -> UUID:
         """Return the UUID of the currently selected measurement."""
         val = await self._http.get("/measurements/selected-uuid")
-        return str(val)
+        return UUID(str(val))
 
-    async def set_selected_uuid(self, uuid: str) -> None:
+    async def set_selected_uuid(self, uuid: UUID) -> None:
         """Select a measurement by UUID."""
-        await self._http.post("/measurements/selected-uuid", uuid)
+        await self._http.post("/measurements/selected-uuid", str(uuid))
 
     # ------------------------------------------------------------------
     # Name / notes
     # ------------------------------------------------------------------
 
-    async def set_title(self, uuid: str, title: str) -> None:
+    async def set_title(self, uuid: UUID, title: str) -> None:
         """Rename measurement *uuid*."""
         await self._http.put(f"/measurements/{uuid}", {"title": title})
 
-    async def set_notes(self, uuid: str, notes: str) -> None:
+    async def set_notes(self, uuid: UUID, notes: str) -> None:
         """Set the notes for measurement *uuid*."""
         await self._http.put(f"/measurements/{uuid}", {"notes": notes})
 
@@ -106,7 +107,7 @@ class MeasurementsClient:
     # Save
     # ------------------------------------------------------------------
 
-    async def save(self, uuid: str, path: str) -> None:
+    async def save(self, uuid: UUID, path: str) -> None:
         """
         Save measurement *uuid* to *path*.
 
@@ -156,7 +157,7 @@ class MeasurementsClient:
 
     async def get_frequency_response(
         self,
-        uuid: str,
+        uuid: UUID,
         *,
         unit: Optional[str] = None,
         smoothing: Optional[str] = None,
@@ -190,7 +191,7 @@ class MeasurementsClient:
 
     async def get_group_delay(
         self,
-        uuid: str,
+        uuid: UUID,
         *,
         unit: Optional[str] = None,
         smoothing: Optional[str] = None,
@@ -211,7 +212,7 @@ class MeasurementsClient:
 
     async def get_impulse_response(
         self,
-        uuid: str,
+        uuid: UUID,
         *,
         unit: Optional[str] = None,
         windowed: Optional[bool] = None,
@@ -244,7 +245,7 @@ class MeasurementsClient:
     # IR windows
     # ------------------------------------------------------------------
 
-    async def get_ir_windows(self, uuid: str) -> IRWindows:
+    async def get_ir_windows(self, uuid: UUID) -> IRWindows:
         """
         Return the IR window settings for measurement *uuid*.
 
@@ -253,7 +254,7 @@ class MeasurementsClient:
         data = await self._http.get(f"/measurements/{uuid}/ir-windows")
         return IRWindows.from_dict(data)
 
-    async def set_ir_windows(self, uuid: str, windows: IRWindows) -> None:
+    async def set_ir_windows(self, uuid: UUID, windows: IRWindows) -> None:
         """Update the IR window settings for measurement *uuid*."""
         await self._http.put(f"/measurements/{uuid}/ir-windows", windows.to_dict())
 
@@ -261,12 +262,12 @@ class MeasurementsClient:
     # Filters
     # ------------------------------------------------------------------
 
-    async def get_filters(self, uuid: str) -> List[FilterSetting]:
+    async def get_filters(self, uuid: UUID) -> List[FilterSetting]:
         """Return the EQ filter list for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/filters")
         return [FilterSetting.from_dict(f) for f in data]
 
-    async def set_filters(self, uuid: str, filters: List[FilterSetting]) -> None:
+    async def set_filters(self, uuid: UUID, filters: List[FilterSetting]) -> None:
         """
         Write EQ filters for measurement *uuid*.
 
@@ -281,12 +282,12 @@ class MeasurementsClient:
     # Equaliser
     # ------------------------------------------------------------------
 
-    async def get_equaliser(self, uuid: str) -> Equaliser:
+    async def get_equaliser(self, uuid: UUID) -> Equaliser:
         """Return the equaliser selection for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/equaliser")
         return Equaliser.from_dict(data)
 
-    async def set_equaliser(self, uuid: str, equaliser: Equaliser) -> None:
+    async def set_equaliser(self, uuid: UUID, equaliser: Equaliser) -> None:
         """Set the equaliser for measurement *uuid*."""
         await self._http.post(f"/measurements/{uuid}/equaliser", equaliser.to_dict())
 
@@ -294,30 +295,30 @@ class MeasurementsClient:
     # Target settings / level / room curve
     # ------------------------------------------------------------------
 
-    async def get_target_settings(self, uuid: str) -> TargetSettings:
+    async def get_target_settings(self, uuid: UUID) -> TargetSettings:
         """Return the EQ target shape settings for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/target-settings")
         return TargetSettings.from_dict(data)
 
-    async def set_target_settings(self, uuid: str, settings: TargetSettings) -> None:
+    async def set_target_settings(self, uuid: UUID, settings: TargetSettings) -> None:
         """Update the EQ target shape settings for measurement *uuid*."""
         await self._http.post(f"/measurements/{uuid}/target-settings", settings.to_dict())
 
-    async def get_target_level(self, uuid: str) -> float:
+    async def get_target_level(self, uuid: UUID) -> float:
         """Return the EQ target level (dB) for measurement *uuid*."""
         val = await self._http.get(f"/measurements/{uuid}/target-level")
         return float(val)
 
-    async def set_target_level(self, uuid: str, level: float) -> None:
+    async def set_target_level(self, uuid: UUID, level: float) -> None:
         """Set the EQ target level (dB) for measurement *uuid*."""
         await self._http.post(f"/measurements/{uuid}/target-level", level)
 
-    async def get_room_curve_settings(self, uuid: str) -> RoomCurveSettings:
+    async def get_room_curve_settings(self, uuid: UUID) -> RoomCurveSettings:
         """Return the room curve settings for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/room-curve-settings")
         return RoomCurveSettings.from_dict(data)
 
-    async def set_room_curve_settings(self, uuid: str, settings: RoomCurveSettings) -> None:
+    async def set_room_curve_settings(self, uuid: UUID, settings: RoomCurveSettings) -> None:
         """Update the room curve settings for measurement *uuid*."""
         await self._http.post(
             f"/measurements/{uuid}/room-curve-settings", settings.to_dict()
@@ -328,7 +329,7 @@ class MeasurementsClient:
     # ------------------------------------------------------------------
 
     async def get_target_response(
-        self, uuid: str, *, ppo: Optional[int] = None
+        self, uuid: UUID, *, ppo: Optional[int] = None
     ) -> FrequencyResponse:
         """
         Return the EQ target response for measurement *uuid*.
@@ -339,7 +340,7 @@ class MeasurementsClient:
         return FrequencyResponse.from_dict(data)
 
     async def get_eq_frequency_response(
-        self, uuid: str, *, unit: Optional[str] = None, ppo: Optional[int] = None
+        self, uuid: UUID, *, unit: Optional[str] = None, ppo: Optional[int] = None
     ) -> FrequencyResponse:
         """Return the predicted post-EQ frequency response for measurement *uuid*."""
         data = await self._http.get(
@@ -347,12 +348,12 @@ class MeasurementsClient:
         )
         return FrequencyResponse.from_dict(data)
 
-    async def get_eq_group_delay(self, uuid: str) -> FrequencyResponse:
+    async def get_eq_group_delay(self, uuid: UUID) -> FrequencyResponse:
         """Return the predicted post-EQ group delay for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/eq/group-delay")
         return FrequencyResponse.from_dict(data)
 
-    async def get_eq_impulse_response(self, uuid: str) -> ImpulseResponse:
+    async def get_eq_impulse_response(self, uuid: UUID) -> ImpulseResponse:
         """Return the predicted post-EQ impulse response for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/eq/impulse-response")
         return ImpulseResponse.from_dict(data)
@@ -361,13 +362,13 @@ class MeasurementsClient:
     # Per-measurement commands
     # ------------------------------------------------------------------
 
-    async def get_commands(self, uuid: str) -> List[str]:
+    async def get_commands(self, uuid: UUID) -> List[str]:
         """Return the list of commands available for measurement *uuid*."""
         return await self._http.get(f"/measurements/{uuid}/commands")
 
     async def run_command(
         self,
-        uuid: str,
+        uuid: UUID,
         command: str,
         parameters: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -398,7 +399,7 @@ class MeasurementsClient:
 
     async def run_eq_command(
         self,
-        uuid: str,
+        uuid: UUID,
         command: str,
         *,
         poll_interval: float = 0.5,
@@ -448,7 +449,7 @@ class MeasurementsClient:
 
     async def process_measurements(
         self,
-        uuids: List[str],
+        uuids: List[UUID],
         process_name: str,
         parameters: Optional[Dict[str, Any]] = None,
         *,
@@ -496,7 +497,7 @@ class MeasurementsClient:
         """
         body: Dict[str, Any] = {
             "processName": process_name,
-            "measurementIndices": uuids,
+            "measurementIndices": [str(u) for u in uuids],
         }
         if parameters:
             body["parameters"] = parameters

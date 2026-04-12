@@ -21,7 +21,7 @@ Usage::
             await rew.rta.wait_until_stopped()
 
             # Save and get the new measurement UUID in one call
-            uuid = await rew.save_rta()
+            uuid = await rew.save_rta()  # returns UUID
 
             # Work with the measurement
             fr = await rew.measurements.get_frequency_response(uuid, smoothing="1/12")
@@ -35,6 +35,7 @@ from __future__ import annotations
 import asyncio
 
 from typing import Any, Optional
+from uuid import UUID
 
 from ._audio import AudioClient
 from ._eq import EQDefaultsClient
@@ -106,7 +107,7 @@ class REWClient:
     # Convenience methods
     # ------------------------------------------------------------------
 
-    async def save_rta(self) -> str:
+    async def save_rta(self) -> UUID:
         """
         Save the current RTA data as a new measurement and return its UUID.
 
@@ -124,7 +125,7 @@ class REWClient:
 
         Returns
         -------
-        str
+        UUID
             UUID of the newly saved measurement.
         """
         await self.rta.save()

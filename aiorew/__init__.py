@@ -62,12 +62,15 @@ from ._models import (
     decode_float_array,
     encode_float_array,
 )
+from uuid import UUID
 
 __all__ = [
     # Client
     "REWClient",
     # Error
     "REWError",
+    # UUID type (re-exported for convenience)
+    "UUID",
     # Measurement models
     "MeasurementSummary",
     "FrequencyResponse",

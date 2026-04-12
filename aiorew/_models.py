@@ -14,6 +14,7 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 import numpy as np
 
@@ -47,7 +48,7 @@ class MeasurementSummary:
     (e.g. RTA-derived measurements have no IR timing).
     """
     title: str
-    uuid: str
+    uuid: UUID
     date: str
     startFreq: float
     endFreq: float
@@ -69,7 +70,7 @@ class MeasurementSummary:
     def from_dict(cls, d: Dict[str, Any]) -> "MeasurementSummary":
         return cls(
             title=d["title"],
-            uuid=d["uuid"],
+            uuid=UUID(d["uuid"]),
             date=d["date"],
             startFreq=d["startFreq"],
             endFreq=d["endFreq"],
