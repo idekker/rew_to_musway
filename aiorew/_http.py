@@ -33,7 +33,7 @@ class _HTTPClient:
     """
 
     def __init__(self, host: str, port: int) -> None:
-        self._base = f"http://{host}:{port}"
+        self._base = f"http://{host}:{port}"  # noqa
         self._client: Optional[httpx.AsyncClient] = None
 
     # ------------------------------------------------------------------
@@ -65,7 +65,9 @@ class _HTTPClient:
 
     def _http(self) -> httpx.AsyncClient:
         if self._client is None:
-            raise RuntimeError("_HTTPClient not started — call start() or use as async context manager")
+            raise RuntimeError(
+                "_HTTPClient not started — call start() or use as async context manager"
+            )
         return self._client
 
     @staticmethod
@@ -96,7 +98,9 @@ class _HTTPClient:
     # ------------------------------------------------------------------
 
     async def get(self, path: str, **params: Any) -> Any:
-        r = await self._http().get(path, params={k: v for k, v in params.items() if v is not None})
+        r = await self._http().get(
+            path, params={k: v for k, v in params.items() if v is not None}
+        )
         self._raise_for_status(r)
         return self._parse(r)
 
@@ -119,8 +123,8 @@ class _HTTPClient:
     # Polling helper
     # ------------------------------------------------------------------
 
+    @staticmethod
     async def poll_until(
-        self,
         check: Callable[[], Any],
         *,
         condition: Callable[[Any], bool],
@@ -151,6 +155,4 @@ class _HTTPClient:
             await asyncio.sleep(poll_interval)
             elapsed += poll_interval
             if timeout is not None and elapsed >= timeout:
-                raise TimeoutError(
-                    f"REW operation did not complete within {timeout}s"
-                )
+                raise TimeoutError(f"REW operation did not complete within {timeout}s")

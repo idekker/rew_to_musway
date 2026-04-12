@@ -63,7 +63,12 @@ from ._models import (
     encode_float_array,
     TargetShape,
     Smoothing,
-    GeneratorSignal, InputLevelsUnit, GeneratorLevelUnit, SPLMode, SPLWeighing, SPLFilter,
+    GeneratorSignal,
+    InputLevelsUnit,
+    GeneratorLevelUnit,
+    SPLMode,
+    SPLWeighing,
+    SPLFilter,
 )
 from uuid import UUID
 

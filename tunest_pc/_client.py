@@ -32,7 +32,6 @@ from ._constants import (
     RESET_EQ_DIALOG_CLASS,
     RESET_EQ_OK_BTN_REL,
     RESET_EQ_SELECTED_CB_REL,
-    CLICK_SLEEP,
 )
 from ._automation import (
     TunestAutomationError,
@@ -51,21 +50,22 @@ from ._launcher import TunestConnectionError, launch_and_connect
 
 # UIAC is safe to import here: importing _automation above already triggered
 # comtypes.client.GetModule("UIAutomationCore.dll") which generates comtypes.gen.
-import comtypes.gen.UIAutomationClient as UIAC  # noqa: E402
+import comtypes.gen.UIAutomationClient as UIAC  # noqa: E402,N814
 
 
 # ---------------------------------------------------------------------------
 # Public enums
 # ---------------------------------------------------------------------------
 
+
 class FilterType(Enum):
-    BUTTERWORTH    = "Butterworth"
-    BESSEL         = "Bessel"
+    BUTTERWORTH = "Butterworth"
+    BESSEL = "Bessel"
     LINKWITZ_RILEY = "Linkwitz Riley"
 
 
 class FilterSlope(Enum):
-    OFF  = "OFF"
+    OFF = "OFF"
     DB12 = "12dB/Oct"
     DB24 = "24dB/Oct"
     DB36 = "36dB/Oct"
@@ -75,6 +75,7 @@ class FilterSlope(Enum):
 # ---------------------------------------------------------------------------
 # TunestPC
 # ---------------------------------------------------------------------------
+
 
 class TunestPC:
     """
@@ -121,7 +122,9 @@ class TunestPC:
         sx, sy = self._abs(rel_x, rel_y)
         _send_click(sx, sy)
 
-    def _all_descendants(self) -> list[tuple[int, int, int, int, int, UIAC.IUIAutomationElement]]:
+    def _all_descendants(
+        self,
+    ) -> list[tuple[int, int, int, int, int, UIAC.IUIAutomationElement]]:
         """
         Return a flat list of (area, left, top, right, bottom, elem) for every
         non-zero-size descendant of the main window.  Re-queried fresh each call.
@@ -129,6 +132,7 @@ class TunestPC:
         hwnd = self._require_connected()
         root = element_from_hwnd(hwnd)
         from ._automation import get_uia
+
         uia = get_uia()
         tc = uia.CreateTrueCondition()
         all_d = root.FindAll(UIAC.TreeScope_Descendants, tc)
@@ -181,7 +185,7 @@ class TunestPC:
                     named.sort()
                     return named[0][5]
             elif hits:
-                hits.sort()   # smallest area first = leaf element
+                hits.sort()  # smallest area first = leaf element
                 return hits[0][5]
 
             if time.monotonic() >= deadline:
@@ -268,7 +272,8 @@ class TunestPC:
     # Channel level & mute
     # ------------------------------------------------------------------
 
-    def _ch_x(self, channel: int) -> int:
+    @staticmethod
+    def _ch_x(channel: int) -> int:
         """Return window-relative X of the left edge of a channel group (1-indexed)."""
         if not (1 <= channel <= 8):
             raise ValueError(f"Channel must be 1–8, got {channel}")
@@ -277,7 +282,7 @@ class TunestPC:
     def get_channel_level(self, channel: int) -> str:
         """Return the level string for *channel* (1–8), e.g. '0.0dB'."""
         cx = self._ch_x(channel)
-        rel_x = cx + CH_LEVEL_EDIT_OFFSET[0] + 38   # centre of the 77px-wide field
+        rel_x = cx + CH_LEVEL_EDIT_OFFSET[0] + 38  # centre of the 77px-wide field
         rel_y = CHANNEL_STRIP_TOP_Y + CH_LEVEL_EDIT_OFFSET[1] + 12
         elem = self._get_elem_at_rel(rel_x, rel_y)
         return get_value(elem)
@@ -293,7 +298,7 @@ class TunestPC:
     def get_channel_mute(self, channel: int) -> bool:
         """Return True if *channel* (1–8) is muted."""
         cx = self._ch_x(channel)
-        rel_x = cx + CH_MUTE_CB_OFFSET[0] + 14   # centre of 28px-wide button
+        rel_x = cx + CH_MUTE_CB_OFFSET[0] + 14  # centre of 28px-wide button
         rel_y = CHANNEL_STRIP_TOP_Y + CH_MUTE_CB_OFFSET[1] + 11
         elem = self._get_elem_at_rel(rel_x, rel_y)
         return get_toggle_state(elem) == 1
@@ -309,7 +314,7 @@ class TunestPC:
     def get_channel_solo(self, channel: int) -> bool:
         """Return True if *channel* (1–8) is soloed."""
         cx = self._ch_x(channel)
-        rel_x = cx + CH_SOLO_CB_OFFSET[0] + 23   # centre of 47px-wide button
+        rel_x = cx + CH_SOLO_CB_OFFSET[0] + 23  # centre of 47px-wide button
         rel_y = CHANNEL_STRIP_TOP_Y + CH_SOLO_CB_OFFSET[1] + 12
         elem = self._get_elem_at_rel(rel_x, rel_y)
         return get_toggle_state(elem) == 1
@@ -337,7 +342,7 @@ class TunestPC:
         if not (1 <= channel <= 8):
             raise ValueError(f"Channel must be 1–8, got {channel}")
         cx = self._ch_x(channel)
-        rel_x = cx + CH_HEADER_OFFSET[0]   # centre of 160px-wide header = x+80
+        rel_x = cx + CH_HEADER_OFFSET[0]  # centre of 160px-wide header = x+80
         rel_y = CHANNEL_STRIP_TOP_Y + CH_HEADER_OFFSET[1]  # 511+14 = 525
         self._click_rel(rel_x, rel_y)
         time.sleep(0.15)
@@ -473,12 +478,15 @@ class TunestPC:
         deadline = time.monotonic() + 5.0
         dialog_hwnd = None
         while time.monotonic() < deadline:
+
             def _find(h: int, _: object) -> bool:
                 nonlocal dialog_hwnd
-                if (win32gui.GetClassName(h) == RESET_EQ_DIALOG_CLASS
-                        and win32gui.IsWindowVisible(h)):
+                if win32gui.GetClassName(
+                    h
+                ) == RESET_EQ_DIALOG_CLASS and win32gui.IsWindowVisible(h):
                     dialog_hwnd = h
                 return True
+
             win32gui.EnumWindows(_find, None)
             if dialog_hwnd:
                 break
@@ -487,6 +495,7 @@ class TunestPC:
             raise TunestAutomationError("Reset EQ dialog did not appear")
 
         from ._automation import element_from_hwnd as _efh, get_uia, get_rect as _gr
+
         dialog_elem = _efh(dialog_hwnd)
         time.sleep(0.15)
 
@@ -508,11 +517,13 @@ class TunestPC:
         ok_elem = dialog_elem.FindFirst(UIAC.TreeScope_Descendants, ok_cond)
         if ok_elem is not None:
             from ._automation import centre as _ctr
+
             _send_click(*_ctr(ok_elem))
         else:
             dl, dt, _, _ = _gr(dialog_elem)
-            _send_click(dl + RESET_EQ_OK_BTN_REL[0] + 42,
-                        dt + RESET_EQ_OK_BTN_REL[1] + 12)
+            _send_click(
+                dl + RESET_EQ_OK_BTN_REL[0] + 42, dt + RESET_EQ_OK_BTN_REL[1] + 12
+            )
 
     # ------------------------------------------------------------------
     # Bypass / Restore EQ

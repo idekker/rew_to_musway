@@ -10,7 +10,6 @@ from typing import Optional
 
 import ctypes
 import psutil
-import win32gui
 
 from ._constants import (
     DEFAULT_LAUNCH_TIMEOUT,
@@ -42,6 +41,7 @@ class TunestConnectionError(Exception):
 # Process lookup
 # ---------------------------------------------------------------------------
 
+
 def _find_process_pid() -> Optional[int]:
     """Return the PID of a running Tunest PC process, or None."""
     for proc in psutil.process_iter(["pid", "name"]):
@@ -55,6 +55,7 @@ def _find_process_pid() -> Optional[int]:
 # ---------------------------------------------------------------------------
 # Model selection helper
 # ---------------------------------------------------------------------------
+
 
 def _click_model_button(dialog_hwnd: int, model: str) -> None:
     """
@@ -84,8 +85,8 @@ def _click_model_button(dialog_hwnd: int, model: str) -> None:
     time.sleep(0.3)
 
     # Click the Enter button — use centre of its full width (40..562 → cx=301)
-    enter_x = (MODEL_ENTER_BUTTON_REL[0] + 562) // 2   # ≈ 301
-    enter_y = MODEL_ENTER_BUTTON_REL[1] + 14            # centre vertically (H=28)
+    enter_x = (MODEL_ENTER_BUTTON_REL[0] + 562) // 2  # ≈ 301
+    enter_y = MODEL_ENTER_BUTTON_REL[1] + 14  # centre vertically (H=28)
     _send_click(l + enter_x, t + enter_y)
     time.sleep(CLICK_SLEEP * 3)
 
@@ -93,6 +94,7 @@ def _click_model_button(dialog_hwnd: int, model: str) -> None:
 # ---------------------------------------------------------------------------
 # Launch & connect
 # ---------------------------------------------------------------------------
+
 
 def launch_and_connect(
     exe_path: str,
@@ -116,6 +118,7 @@ def launch_and_connect(
         TunestConnectionError: if the window doesn't appear within *timeout*.
         FileNotFoundError: if *exe_path* doesn't exist when launch is needed.
     """
+
     def _find_main_hwnd() -> Optional[int]:
         return hwnd_from_class(MAIN_WINDOW_CLASS, title=MAIN_WINDOW_TITLE)
 
@@ -159,7 +162,7 @@ def launch_and_connect(
                     _click_model_button(hwnd, model)
                     _model_clicked = True
                 except TunestAutomationError:
-                    pass   # still loading, retry next iteration
+                    pass  # still loading, retry next iteration
 
         time.sleep(LAUNCH_POLL_INTERVAL)
 

@@ -24,6 +24,7 @@ import numpy as np
 # Array codec (Base64 big-endian float32 <-> numpy)
 # ---------------------------------------------------------------------------
 
+
 def decode_float_array(b64: str) -> np.ndarray:
     """Decode a REW Base64-encoded big-endian float32 array to a numpy array."""
     raw = base64.b64decode(b64)
@@ -39,6 +40,7 @@ def encode_float_array(arr: np.ndarray) -> str:
 # Measurements
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class MeasurementSummary:
     """
@@ -48,6 +50,7 @@ class MeasurementSummary:
     Group fields and IR timing fields are absent on some measurement types
     (e.g. RTA-derived measurements have no IR timing).
     """
+
     title: str
     uuid: UUID
     date: str
@@ -105,12 +108,13 @@ class FrequencyResponse:
     Frequency at zero-based index i for linear-spaced data:
         startFreq + i * freqStep
     """
+
     unit: str
     smoothing: Smoothing
     startFreq: float
     magnitude: np.ndarray
-    ppo: Optional[int] = None          # log-spaced
-    freqStep: Optional[float] = None   # linear-spaced
+    ppo: Optional[int] = None  # log-spaced
+    freqStep: Optional[float] = None  # linear-spaced
     phase: Optional[np.ndarray] = None
 
     @classmethod
@@ -147,6 +151,7 @@ class ImpulseResponse:
 
     Not available for RTA-derived measurements — the API returns 400 for those.
     """
+
     unit: str
     startTime: float
     sampleInterval: float
@@ -173,6 +178,7 @@ class IRWindows:
 
     Not available for RTA-derived measurements.
     """
+
     leftWindowType: str
     rightWindowType: str
     leftWindowWidthms: float
@@ -217,6 +223,7 @@ class FilterSetting:
 
     frequency, gaindB, and q are absent when type is "None".
     """
+
     index: int
     type: str
     enabled: bool
@@ -256,6 +263,7 @@ class FilterSetting:
 @dataclass
 class Equaliser:
     """Equaliser selection for a measurement."""
+
     manufacturer: str
     model: str
 
@@ -278,6 +286,7 @@ class TargetShape(Enum):
 @dataclass
 class TargetSettings:
     """EQ target shape settings for a measurement."""
+
     shape: TargetShape
     bassManagementSlopedBPerOctave: int
     bassManagementCutoffHz: float
@@ -319,6 +328,7 @@ class TargetSettings:
 @dataclass
 class RoomCurveSettings:
     """Room curve settings for a measurement."""
+
     addRoomCurve: bool
     lowFreqRiseStartHz: float
     lowFreqRiseEndHz: float
@@ -351,6 +361,7 @@ class RoomCurveSettings:
 @dataclass
 class ProcessResult:
     """Result from a long-running REW command."""
+
     processName: Optional[int] = None
     message: Optional[str] = None
     # Additional key/value results from the command (e.g. waterfall, spectrogram data)
@@ -370,9 +381,11 @@ class ProcessResult:
 # Audio
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class InputCalAllInputs:
     """Cal data shared across all inputs."""
+
     calFilePath: str = ""
     dBFSAt94dBSPL: Optional[float] = None
 
@@ -403,6 +416,7 @@ class InputCalConfig:
         "calDataAllInputs": {"calFilePath": <str>, "dBFSAt94dBSPL": <float>}
       }
     """
+
     currentInputSelection: str = ""
     separateCalFileForEachInput: bool = False
     inputDeviceIsCWeighted: bool = False
@@ -415,7 +429,9 @@ class InputCalConfig:
             currentInputSelection=d.get("currentInputSelection", ""),
             separateCalFileForEachInput=d.get("separateCalFileForEachInput", False),
             inputDeviceIsCWeighted=d.get("inputDeviceIsCWeighted", False),
-            calDataAllInputs=InputCalAllInputs.from_dict(cal_raw if isinstance(cal_raw, dict) else {}),
+            calDataAllInputs=InputCalAllInputs.from_dict(
+                cal_raw if isinstance(cal_raw, dict) else {}
+            ),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -430,6 +446,7 @@ class InputCalConfig:
 @dataclass
 class OutputCalSampleRate:
     """Sample rate info nested inside OutputCalConfig."""
+
     value: float = 0.0
     unit: str = "Hz"
 
@@ -444,6 +461,7 @@ class OutputCalSampleRate:
 @dataclass
 class OutputCalData:
     """Cal data nested inside OutputCalConfig."""
+
     calFilePath: str = ""
     sampleRate: OutputCalSampleRate = field(default_factory=OutputCalSampleRate)
 
@@ -452,11 +470,16 @@ class OutputCalData:
         sr_raw = d.get("sampleRate", {})
         return cls(
             calFilePath=d.get("calFilePath", ""),
-            sampleRate=OutputCalSampleRate.from_dict(sr_raw if isinstance(sr_raw, dict) else {}),
+            sampleRate=OutputCalSampleRate.from_dict(
+                sr_raw if isinstance(sr_raw, dict) else {}
+            ),
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"calFilePath": self.calFilePath, "sampleRate": self.sampleRate.to_dict()}
+        return {
+            "calFilePath": self.calFilePath,
+            "sampleRate": self.sampleRate.to_dict(),
+        }
 
 
 @dataclass
@@ -470,6 +493,7 @@ class OutputCalConfig:
         "calData": {"calFilePath": <str>, "sampleRate": {"value": <float>, "unit": "Hz"}}
       }
     """
+
     currentOutputSelection: str = ""
     calData: OutputCalData = field(default_factory=OutputCalData)
 
@@ -478,7 +502,9 @@ class OutputCalConfig:
         cal_raw = d.get("calData", {})
         return cls(
             currentOutputSelection=d.get("currentOutputSelection", ""),
-            calData=OutputCalData.from_dict(cal_raw if isinstance(cal_raw, dict) else {}),
+            calData=OutputCalData.from_dict(
+                cal_raw if isinstance(cal_raw, dict) else {}
+            ),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -491,6 +517,7 @@ class OutputCalConfig:
 # ---------------------------------------------------------------------------
 # Input levels
 # ---------------------------------------------------------------------------
+
 
 class InputLevelsUnit(Enum):
     SPL = "SPL"
@@ -509,6 +536,7 @@ class InputLevels:
 
     rms and peak are lists of per-channel values.
     """
+
     unit: InputLevelsUnit
     rms: List[float]
     peak: List[float]
@@ -527,6 +555,7 @@ class InputLevels:
 # ---------------------------------------------------------------------------
 # Generator
 # ---------------------------------------------------------------------------
+
 
 class GeneratorSignal(Enum):
     SINE = "sine"
@@ -559,6 +588,7 @@ class GeneratorLevelUnit(Enum):
 @dataclass
 class GeneratorStatus:
     """Current state of the REW signal generator."""
+
     enabled: bool
     playing: bool
     signal: Optional[GeneratorSignal] = None
@@ -572,13 +602,16 @@ class GeneratorStatus:
             playing=d.get("playing", False),
             signal=GeneratorSignal(d.get("signal")) if d.get("signal") else None,
             level=d.get("level"),
-            levelUnit=GeneratorLevelUnit(d.get("levelUnit")) if d.get("levelUnit") else None,
+            levelUnit=GeneratorLevelUnit(d.get("levelUnit"))
+            if d.get("levelUnit")
+            else None,
         )
 
 
 # ---------------------------------------------------------------------------
 # SPL meter
 # ---------------------------------------------------------------------------
+
 
 class SPLMode(Enum):
     SPL = "SPL"
@@ -600,6 +633,7 @@ class SPLFilter(Enum):
 @dataclass
 class SPLMeterConfiguration:
     """Configuration for a single REW SPL meter."""
+
     mode: SPLMode = SPLMode.SPL
     weighting: SPLWeighing = SPLWeighing.C
     filter: SPLFilter = SPLFilter.SLOW
@@ -632,6 +666,7 @@ class SPLMeterConfiguration:
 @dataclass
 class SPLValues:
     """SPL meter readings."""
+
     meterNumber: int
     weighting: SPLWeighing
     filter: SPLFilter
@@ -665,6 +700,7 @@ class SPLValues:
 # RTA
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class RTAConfiguration:
     """
@@ -678,13 +714,14 @@ class RTAConfiguration:
     stopAt is a string like "Max averages", "Never", etc. (not a bool).
     stopAtValue is a string.
     """
+
     mode: Optional[str] = None
     smoothing: Optional[Smoothing] = None
-    fftLength: Optional[str] = None            # e.g. "64k"
+    fftLength: Optional[str] = None  # e.g. "64k"
     window: Optional[str] = None
     averaging: Optional[str] = None
-    stopAt: Optional[bool] = None              # True = stop at stopAtValue averages
-    stopAtValue: Optional[int] = None          # number of averages before auto-stop
+    stopAt: Optional[bool] = None  # True = stop at stopAtValue averages
+    stopAtValue: Optional[int] = None  # number of averages before auto-stop
     maximumOverlap: Optional[str] = None
     calcDistortionEnabled: Optional[bool] = None
     restartCaptureOnGeneratorChange: Optional[bool] = None
@@ -713,27 +750,32 @@ class RTAConfiguration:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        return {k: v for k, v in {
-            "mode": self.mode,
-            "smoothing": self.smoothing.value if self.smoothing else None,
-            "fftLength": self.fftLength,
-            "window": self.window,
-            "averaging": self.averaging,
-            "stopAt": self.stopAt,
-            "stopAtValue": self.stopAtValue,
-            "maximumOverlap": self.maximumOverlap,
-            "calcDistortionEnabled": self.calcDistortionEnabled,
-            "restartCaptureOnGeneratorChange": self.restartCaptureOnGeneratorChange,
-            "stopGeneratorWithRTA": self.stopGeneratorWithRTA,
-            "use64BitFFT": self.use64BitFFT,
-            "adjustRTALevels": self.adjustRTALevels,
-            "fundamentalFromSineGen": self.fundamentalFromSineGen,
-        }.items() if v is not None}
+        return {
+            k: v
+            for k, v in {
+                "mode": self.mode,
+                "smoothing": self.smoothing.value if self.smoothing else None,
+                "fftLength": self.fftLength,
+                "window": self.window,
+                "averaging": self.averaging,
+                "stopAt": self.stopAt,
+                "stopAtValue": self.stopAtValue,
+                "maximumOverlap": self.maximumOverlap,
+                "calcDistortionEnabled": self.calcDistortionEnabled,
+                "restartCaptureOnGeneratorChange": self.restartCaptureOnGeneratorChange,
+                "stopGeneratorWithRTA": self.stopGeneratorWithRTA,
+                "use64BitFFT": self.use64BitFFT,
+                "adjustRTALevels": self.adjustRTALevels,
+                "fundamentalFromSineGen": self.fundamentalFromSineGen,
+            }.items()
+            if v is not None
+        }
 
 
 @dataclass
 class RTAStatus:
     """Current run state of the REW RTA."""
+
     enabled: bool
     running: bool
 
@@ -749,6 +791,7 @@ class RTAStatus:
 # EQ defaults
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class MatchTargetSettings:
     """
@@ -757,6 +800,7 @@ class MatchTargetSettings:
     Actual fields from GET /eq/match-target-settings.
     Only populated fields are sent when doing PUT/POST.
     """
+
     startFrequency: Optional[float] = None
     endFrequency: Optional[float] = None
     individualMaxBoostdB: Optional[float] = None
@@ -790,18 +834,22 @@ class MatchTargetSettings:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        return {k: v for k, v in {
-            "startFrequency": self.startFrequency,
-            "endFrequency": self.endFrequency,
-            "individualMaxBoostdB": self.individualMaxBoostdB,
-            "overallMaxBoostdB": self.overallMaxBoostdB,
-            "flatnessTargetdB": self.flatnessTargetdB,
-            "allowNarrowFiltersBelow200Hz": self.allowNarrowFiltersBelow200Hz,
-            "varyQAbove200Hz": self.varyQAbove200Hz,
-            "allowLowShelf": self.allowLowShelf,
-            "lowShelfMin": self.lowShelfMin,
-            "lowShelfMax": self.lowShelfMax,
-            "allowHighShelf": self.allowHighShelf,
-            "highShelfMin": self.highShelfMin,
-            "highShelfMax": self.highShelfMax,
-        }.items() if v is not None}
+        return {
+            k: v
+            for k, v in {
+                "startFrequency": self.startFrequency,
+                "endFrequency": self.endFrequency,
+                "individualMaxBoostdB": self.individualMaxBoostdB,
+                "overallMaxBoostdB": self.overallMaxBoostdB,
+                "flatnessTargetdB": self.flatnessTargetdB,
+                "allowNarrowFiltersBelow200Hz": self.allowNarrowFiltersBelow200Hz,
+                "varyQAbove200Hz": self.varyQAbove200Hz,
+                "allowLowShelf": self.allowLowShelf,
+                "lowShelfMin": self.lowShelfMin,
+                "lowShelfMax": self.lowShelfMax,
+                "allowHighShelf": self.allowHighShelf,
+                "highShelfMin": self.highShelfMin,
+                "highShelfMax": self.highShelfMax,
+            }.items()
+            if v is not None
+        }

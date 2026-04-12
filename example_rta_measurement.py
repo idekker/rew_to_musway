@@ -30,7 +30,9 @@ from datetime import datetime
 
 # Force UTF-8 output on cp1252 consoles (Windows), with line buffering so
 # print() output appears immediately rather than at process exit.
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
+sys.stdout = io.TextIOWrapper(
+    sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True
+)
 
 from aiorew import REWClient, RTAConfiguration, GeneratorSignal
 
@@ -41,7 +43,9 @@ from aiorew import REWClient, RTAConfiguration, GeneratorSignal
 REW_HOST = "localhost"
 REW_PORT = 4735
 
-GENERATOR_SIGNAL = GeneratorSignal.PINK_PERIODIC  # periodic pink noise — as returned by generator.get_signals()
+GENERATOR_SIGNAL = (
+    GeneratorSignal.PINK_PERIODIC
+)  # periodic pink noise — as returned by generator.get_signals()
 GENERATOR_LEVEL = -12.0  # dBFS
 
 RTA_MAX_AVERAGES = 100
@@ -53,6 +57,7 @@ SPL_WARMUP = 1.5  # pause after starting SPL meter before reading
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _fmt_levels(levels) -> str:
     rms_str = ", ".join(f"{v:.1f}" for v in levels.rms)
     peak_str = ", ".join(f"{v:.1f}" for v in levels.peak)
@@ -63,9 +68,9 @@ def _fmt_levels(levels) -> str:
 # Main
 # ---------------------------------------------------------------------------
 
+
 async def main() -> None:
     async with REWClient(host=REW_HOST, port=REW_PORT) as rew:
-
         # ------------------------------------------------------------------ #
         # 1. Delete all existing measurements
         # ------------------------------------------------------------------ #
@@ -103,11 +108,13 @@ async def main() -> None:
         # 5. Configure RTA for 100 averages and start
         # ------------------------------------------------------------------ #
         print(f"Configuring RTA: stopAt=True, stopAtValue={RTA_MAX_AVERAGES}…")
-        await rew.rta.set_configuration(RTAConfiguration(
-            stopAt=True,
-            stopAtValue=RTA_MAX_AVERAGES,
-            stopGeneratorWithRTA=False,  # we stop the generator ourselves below
-        ))
+        await rew.rta.set_configuration(
+            RTAConfiguration(
+                stopAt=True,
+                stopAtValue=RTA_MAX_AVERAGES,
+                stopGeneratorWithRTA=False,  # we stop the generator ourselves below
+            )
+        )
 
         print("Starting RTA…")
         await rew.rta.start()
@@ -196,7 +203,7 @@ async def main() -> None:
         # ------------------------------------------------------------------ #
         print("Saving measurements…")
         cwd = os.getcwd()
-        await rew.measurements.save_all(fr"{cwd}\test_files\rta.mdat", timestamp)
+        await rew.measurements.save_all(rf"{cwd}\test_files\rta.mdat", timestamp)
         print("  Done.")
 
         # ------------------------------------------------------------------ #
@@ -212,7 +219,9 @@ async def main() -> None:
         print(f"  RTA averages:   {RTA_MAX_AVERAGES}")
         print(f"  Pre-levels:     {_fmt_levels(pre_levels)}")
         print(f"  Post-levels:    {_fmt_levels(post_levels)}")
-        print(f"  SPL:            {spl.spl:.1f} dB ({spl.weighting}-weighted, {spl.filter})")
+        print(
+            f"  SPL:            {spl.spl:.1f} dB ({spl.weighting}-weighted, {spl.filter})"
+        )
         print("=" * 60)
 
 

@@ -107,7 +107,9 @@ class EQDefaultsClient:
         data = await self._http.get("/eq/default-room-curve-settings")
         return RoomCurveSettings.from_dict(data)
 
-    async def set_default_room_curve_settings(self, settings: RoomCurveSettings) -> None:
+    async def set_default_room_curve_settings(
+        self, settings: RoomCurveSettings
+    ) -> None:
         """Update the default room curve settings."""
         await self._http.post("/eq/default-room-curve-settings", settings.to_dict())
 
@@ -120,7 +122,9 @@ class EQDefaultsClient:
         val = await self._http.get("/eq/house-curve")
         return str(val) if val is not None else ""
 
-    async def set_house_curve(self, path: str, *, log_interpolation: bool = True) -> None:
+    async def set_house_curve(
+        self, path: str, *, log_interpolation: bool = True
+    ) -> None:
         """
         Set the house curve file path.
 

@@ -94,6 +94,7 @@ class RTAClient:
         timeout:
             Optional maximum seconds to wait before raising TimeoutError.
         """
+
         async def _check() -> RTAStatus:
             return await self.get_status()
 

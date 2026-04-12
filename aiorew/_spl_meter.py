@@ -58,7 +58,9 @@ class SPLMeterClient:
         data = await self._http.get(f"/spl-meter/{meter_id}/configuration")
         return SPLMeterConfiguration.from_dict(data)
 
-    async def configure(self, meter_id: int = 1, config: SPLMeterConfiguration = None) -> None:
+    async def configure(
+        self, meter_id: int = 1, config: SPLMeterConfiguration = None
+    ) -> None:
         """
         Apply *config* to SPL meter *meter_id*.
 

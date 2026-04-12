@@ -35,7 +35,7 @@ Response-shape notes (confirmed against live API):
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Union
+from typing import List
 
 from ._http import _HTTPClient
 from ._models import InputCalConfig, OutputCalConfig
@@ -183,9 +183,6 @@ class AudioClient:
     async def get_java_num_input_channels(self) -> int:
         """Return the number of available Java input channels."""
         d = await self._http.get("/audio/java/num-input-channels")
-        # try common wrapper shapes
-        if isinstance(d, dict):
-            return int(d.get("value", d.get("numChannels", next(iter(d.values())))))
         return int(d)
 
     # ------------------------------------------------------------------

@@ -31,7 +31,8 @@ from ._models import (
     MeasurementSummary,
     ProcessResult,
     RoomCurveSettings,
-    TargetSettings, Smoothing,
+    TargetSettings,
+    Smoothing,
 )
 
 
@@ -226,6 +227,8 @@ class MeasurementsClient:
 
         Parameters
         ----------
+        uuid:
+            Measurement UUID.
         unit:
             Unit for the response data (default: Percent).
         windowed:
@@ -302,7 +305,9 @@ class MeasurementsClient:
 
     async def set_target_settings(self, uuid: UUID, settings: TargetSettings) -> None:
         """Update the EQ target shape settings for measurement *uuid*."""
-        await self._http.post(f"/measurements/{uuid}/target-settings", settings.to_dict())
+        await self._http.post(
+            f"/measurements/{uuid}/target-settings", settings.to_dict()
+        )
 
     async def get_target_level(self, uuid: UUID) -> float:
         """Return the EQ target level (dB) for measurement *uuid*."""
@@ -318,7 +323,9 @@ class MeasurementsClient:
         data = await self._http.get(f"/measurements/{uuid}/room-curve-settings")
         return RoomCurveSettings.from_dict(data)
 
-    async def set_room_curve_settings(self, uuid: UUID, settings: RoomCurveSettings) -> None:
+    async def set_room_curve_settings(
+        self, uuid: UUID, settings: RoomCurveSettings
+    ) -> None:
         """Update the room curve settings for measurement *uuid*."""
         await self._http.post(
             f"/measurements/{uuid}/room-curve-settings", settings.to_dict()
@@ -462,7 +469,9 @@ class MeasurementsClient:
         -------
         ProcessResult with the command outcome.
         """
-        rsp = await self._http.post(f"/measurements/{uuid}/eq/command", {"command": command})
+        rsp = await self._http.post(
+            f"/measurements/{uuid}/eq/command", {"command": command}
+        )
         command_message = rsp.get("message")
 
         return await self._wait_for_completion(command_message, poll_interval, timeout)
@@ -540,21 +549,23 @@ class MeasurementsClient:
     # ------------------------------------------------------------------
 
     async def _wait_for_completion(
-            self,
-            command_message: str,
-            poll_interval: float = 0.5,
-            timeout: Optional[float] = None
+        self,
+        command_message: str,
+        poll_interval: float = 0.5,
+        timeout: Optional[float] = None,
     ) -> ProcessResult:
         async def _check() -> Any:
             rsp = await self._http.get("/measurements/process-result")
             return rsp
 
         def _condition(d, cmd_msg) -> bool:
-            return (isinstance(d, dict) and
-                    d.get("processName") is not None and
-                    cmd_msg.startswith(d.get("processName")) and
-                    d.get("message") is not None and
-                    d.get("message") == "Completed")
+            return (
+                isinstance(d, dict)
+                and d.get("processName") is not None
+                and cmd_msg.startswith(d.get("processName"))
+                and d.get("message") is not None
+                and d.get("message") == "Completed"
+            )
 
         result_data = await self._http.poll_until(
             _check,

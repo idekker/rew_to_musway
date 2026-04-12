@@ -10,7 +10,7 @@ from __future__ import annotations
 import ctypes
 import ctypes.wintypes
 import time
-from typing import Optional
+from typing import Optional, Any
 
 import comtypes
 import comtypes.client
@@ -20,8 +20,6 @@ from ._constants import (
     CLICK_SLEEP,
     COMBOBOX_EXPAND_SLEEP,
     DIALOG_DISMISS_SLEEP,
-    WM_SETTEXT,
-    BM_CLICK,
 )
 
 # ---------------------------------------------------------------------------
@@ -29,7 +27,7 @@ from ._constants import (
 # ---------------------------------------------------------------------------
 # Generate / cache the UIA type-lib wrapper on first import.
 comtypes.client.GetModule("UIAutomationCore.dll")
-import comtypes.gen.UIAutomationClient as UIAC  # noqa: E402  (must be after GetModule)
+import comtypes.gen.UIAutomationClient as UIAC  # noqa: N814,E402  (must be after GetModule)
 
 
 class TunestAutomationError(Exception):
@@ -42,7 +40,7 @@ class TunestAutomationError(Exception):
 _uia: Optional[UIAC.IUIAutomation] = None
 
 
-def get_uia() -> UIAC.IUIAutomation:
+def get_uia() -> UIAC.IUIAutomation | Any:
     """Return (or create) the IUIAutomation COM object."""
     global _uia
     if _uia is None:
@@ -57,6 +55,7 @@ def get_uia() -> UIAC.IUIAutomation:
 # Window / element finders
 # ---------------------------------------------------------------------------
 
+
 def hwnd_from_class(window_class: str, title: Optional[str] = None) -> Optional[int]:
     """
     Return the HWND of the main top-level window for Tunest PC.
@@ -65,18 +64,18 @@ def hwnd_from_class(window_class: str, title: Optional[str] = None) -> Optional[
     When only *window_class* is given, class alone must match.
     Always prefers the visible window with the largest area.
     """
-    candidates: list[tuple[int, int, int]] = []   # (sort_key, hwnd, visible)
+    candidates: list[tuple[int, int, int]] = []  # (sort_key, hwnd, visible)
 
     def _cb(hwnd: int, _: object) -> None:
-        cls    = win32gui.GetClassName(hwnd)
+        cls = win32gui.GetClassName(hwnd)
         wtitle = win32gui.GetWindowText(hwnd)
         if cls != window_class:
             return
         if title is not None and wtitle != title:
             return
-        r   = win32gui.GetWindowRect(hwnd)
-        w   = r[2] - r[0]
-        h   = r[3] - r[1]
+        r = win32gui.GetWindowRect(hwnd)
+        w = r[2] - r[0]
+        h = r[3] - r[1]
         vis = 1 if win32gui.IsWindowVisible(hwnd) else 0
         # Sort key: visible first, then by area
         candidates.append((vis * 10_000_000 + w * h, hwnd, vis))
@@ -111,11 +110,11 @@ def find_child(
     *max_wait* seconds.  Raises TunestAutomationError on timeout.
     """
     uia = get_uia()
-    conditions = [uia.CreatePropertyCondition(UIAC.UIA_ControlTypePropertyId, control_type)]
+    conditions = [
+        uia.CreatePropertyCondition(UIAC.UIA_ControlTypePropertyId, control_type)
+    ]
     if name is not None:
-        conditions.append(
-            uia.CreatePropertyCondition(UIAC.UIA_NamePropertyId, name)
-        )
+        conditions.append(uia.CreatePropertyCondition(UIAC.UIA_NamePropertyId, name))
 
     if len(conditions) == 1:
         condition = conditions[0]
@@ -131,9 +130,7 @@ def find_child(
             desc = f"ControlType={control_type}"
             if name:
                 desc += f" Name={name!r}"
-            raise TunestAutomationError(
-                f"Timed out waiting for element: {desc}"
-            )
+            raise TunestAutomationError(f"Timed out waiting for element: {desc}")
         time.sleep(poll)
 
 
@@ -144,11 +141,11 @@ def find_all_children(
 ) -> list[UIAC.IUIAutomationElement]:
     """Return all matching descendants (no wait)."""
     uia = get_uia()
-    conditions = [uia.CreatePropertyCondition(UIAC.UIA_ControlTypePropertyId, control_type)]
+    conditions = [
+        uia.CreatePropertyCondition(UIAC.UIA_ControlTypePropertyId, control_type)
+    ]
     if name is not None:
-        conditions.append(
-            uia.CreatePropertyCondition(UIAC.UIA_NamePropertyId, name)
-        )
+        conditions.append(uia.CreatePropertyCondition(UIAC.UIA_NamePropertyId, name))
     if len(conditions) == 1:
         condition = conditions[0]
     else:
@@ -163,6 +160,7 @@ def find_all_children(
 # ---------------------------------------------------------------------------
 # Bounding rect helpers
 # ---------------------------------------------------------------------------
+
 
 def get_rect(elem: UIAC.IUIAutomationElement) -> tuple[int, int, int, int]:
     """Return (left, top, right, bottom) screen coords of *elem*."""
@@ -180,40 +178,44 @@ def centre(elem: UIAC.IUIAutomationElement) -> tuple[int, int]:
 # Mouse / keyboard primitives
 # ---------------------------------------------------------------------------
 
-_INPUT_MOUSE    = 0
+_INPUT_MOUSE = 0
 _INPUT_KEYBOARD = 1
+
 
 class _MOUSEINPUT(ctypes.Structure):
     _fields_ = [
-        ("dx",          ctypes.c_long),
-        ("dy",          ctypes.c_long),
-        ("mouseData",   ctypes.c_ulong),
-        ("dwFlags",     ctypes.c_ulong),
-        ("time",        ctypes.c_ulong),
+        ("dx", ctypes.c_long),
+        ("dy", ctypes.c_long),
+        ("mouseData", ctypes.c_ulong),
+        ("dwFlags", ctypes.c_ulong),
+        ("time", ctypes.c_ulong),
         ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
     ]
+
 
 class _KEYBDINPUT(ctypes.Structure):
     _fields_ = [
-        ("wVk",         ctypes.c_ushort),
-        ("wScan",       ctypes.c_ushort),
-        ("dwFlags",     ctypes.c_ulong),
-        ("time",        ctypes.c_ulong),
+        ("wVk", ctypes.c_ushort),
+        ("wScan", ctypes.c_ushort),
+        ("dwFlags", ctypes.c_ulong),
+        ("time", ctypes.c_ulong),
         ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
     ]
 
+
 class _INPUT_UNION(ctypes.Union):
     _fields_ = [("mi", _MOUSEINPUT), ("ki", _KEYBDINPUT)]
+
 
 class _INPUT(ctypes.Structure):
     _fields_ = [("type", ctypes.c_ulong), ("_", _INPUT_UNION)]
 
 
-_MOUSEEVENTF_MOVE        = 0x0001
-_MOUSEEVENTF_LEFTDOWN    = 0x0002
-_MOUSEEVENTF_LEFTUP      = 0x0004
-_MOUSEEVENTF_ABSOLUTE    = 0x8000
-_KEYEVENTF_KEYUP         = 0x0002
+_MOUSEEVENTF_MOVE = 0x0001
+_MOUSEEVENTF_LEFTDOWN = 0x0002
+_MOUSEEVENTF_LEFTUP = 0x0004
+_MOUSEEVENTF_ABSOLUTE = 0x8000
+_KEYEVENTF_KEYUP = 0x0002
 
 _VK_RETURN = 0x0D
 
@@ -234,33 +236,42 @@ def _send_click(screen_x: int, screen_y: int) -> None:
     inputs = (_INPUT * 3)(
         _INPUT(
             type=_INPUT_MOUSE,
-            _=_INPUT_UNION(mi=_MOUSEINPUT(
-                dx=ax, dy=ay,
-                mouseData=0,
-                dwFlags=_MOUSEEVENTF_MOVE | _MOUSEEVENTF_ABSOLUTE,
-                time=0,
-                dwExtraInfo=None,
-            )),
+            _=_INPUT_UNION(
+                mi=_MOUSEINPUT(
+                    dx=ax,
+                    dy=ay,
+                    mouseData=0,
+                    dwFlags=_MOUSEEVENTF_MOVE | _MOUSEEVENTF_ABSOLUTE,
+                    time=0,
+                    dwExtraInfo=None,
+                )
+            ),
         ),
         _INPUT(
             type=_INPUT_MOUSE,
-            _=_INPUT_UNION(mi=_MOUSEINPUT(
-                dx=ax, dy=ay,
-                mouseData=0,
-                dwFlags=_MOUSEEVENTF_LEFTDOWN | _MOUSEEVENTF_ABSOLUTE,
-                time=0,
-                dwExtraInfo=None,
-            )),
+            _=_INPUT_UNION(
+                mi=_MOUSEINPUT(
+                    dx=ax,
+                    dy=ay,
+                    mouseData=0,
+                    dwFlags=_MOUSEEVENTF_LEFTDOWN | _MOUSEEVENTF_ABSOLUTE,
+                    time=0,
+                    dwExtraInfo=None,
+                )
+            ),
         ),
         _INPUT(
             type=_INPUT_MOUSE,
-            _=_INPUT_UNION(mi=_MOUSEINPUT(
-                dx=ax, dy=ay,
-                mouseData=0,
-                dwFlags=_MOUSEEVENTF_LEFTUP | _MOUSEEVENTF_ABSOLUTE,
-                time=0,
-                dwExtraInfo=None,
-            )),
+            _=_INPUT_UNION(
+                mi=_MOUSEINPUT(
+                    dx=ax,
+                    dy=ay,
+                    mouseData=0,
+                    dwFlags=_MOUSEEVENTF_LEFTUP | _MOUSEEVENTF_ABSOLUTE,
+                    time=0,
+                    dwExtraInfo=None,
+                )
+            ),
         ),
     )
     ctypes.windll.user32.SendInput(3, inputs, ctypes.sizeof(_INPUT))
@@ -272,15 +283,17 @@ def _send_key(vk: int) -> None:
     inputs = (_INPUT * 2)(
         _INPUT(
             type=_INPUT_KEYBOARD,
-            _=_INPUT_UNION(ki=_KEYBDINPUT(
-                wVk=vk, wScan=0, dwFlags=0, time=0, dwExtraInfo=None
-            )),
+            _=_INPUT_UNION(
+                ki=_KEYBDINPUT(wVk=vk, wScan=0, dwFlags=0, time=0, dwExtraInfo=None)
+            ),
         ),
         _INPUT(
             type=_INPUT_KEYBOARD,
-            _=_INPUT_UNION(ki=_KEYBDINPUT(
-                wVk=vk, wScan=0, dwFlags=_KEYEVENTF_KEYUP, time=0, dwExtraInfo=None
-            )),
+            _=_INPUT_UNION(
+                ki=_KEYBDINPUT(
+                    wVk=vk, wScan=0, dwFlags=_KEYEVENTF_KEYUP, time=0, dwExtraInfo=None
+                )
+            ),
         ),
     )
     ctypes.windll.user32.SendInput(2, inputs, ctypes.sizeof(_INPUT))
@@ -290,6 +303,7 @@ def _send_key(vk: int) -> None:
 # ---------------------------------------------------------------------------
 # Higher-level UIA interactions
 # ---------------------------------------------------------------------------
+
 
 def _get_pattern(
     elem: UIAC.IUIAutomationElement,
@@ -383,6 +397,7 @@ def invoke_element(elem: UIAC.IUIAutomationElement) -> None:
 # ComboBox helper
 # ---------------------------------------------------------------------------
 
+
 def set_combobox(
     combo_elem: UIAC.IUIAutomationElement,
     target_value: str,
@@ -393,7 +408,9 @@ def set_combobox(
     """
     # Try ExpandCollapsePattern
     ecp = _get_pattern(
-        combo_elem, UIAC.UIA_ExpandCollapsePatternId, UIAC.IUIAutomationExpandCollapsePattern
+        combo_elem,
+        UIAC.UIA_ExpandCollapsePatternId,
+        UIAC.IUIAutomationExpandCollapsePattern,
     )
     if ecp is not None:
         ecp.Expand()
@@ -405,14 +422,14 @@ def set_combobox(
         item = combo_elem.FindFirst(UIAC.TreeScope_Subtree, name_cond)
         if item is None:
             ecp.Collapse()
-            raise TunestAutomationError(
-                f"ComboBox item {target_value!r} not found"
-            )
+            raise TunestAutomationError(f"ComboBox item {target_value!r} not found")
         click_element(item)
         return
 
     # Fallback: ValuePattern
-    vp = _get_pattern(combo_elem, UIAC.UIA_ValuePatternId, UIAC.IUIAutomationValuePattern)
+    vp = _get_pattern(
+        combo_elem, UIAC.UIA_ValuePatternId, UIAC.IUIAutomationValuePattern
+    )
     if vp is not None:
         vp.SetValue(target_value)
         return
@@ -431,6 +448,7 @@ def get_combobox_value(combo_elem: UIAC.IUIAutomationElement) -> str:
 # File dialog automation
 # ---------------------------------------------------------------------------
 
+
 def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
     """
     Find the Windows common file-open dialog (#32770), set the filename
@@ -441,6 +459,7 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
     the Open button.  This avoids UIA control-type queries which return
     no results for Qt-hosted dialogs.
     """
+
     # Poll for the dialog to appear.
     # FindWindow("#32770", None) may return an unrelated dialog (e.g. PuTTY error,
     # update notifications) because multiple #32770 windows can be open at once.
@@ -448,6 +467,7 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
     # or "Open" that was most recently activated (foreground first, then by creation).
     def _find_open_file_dialog() -> Optional[int]:
         candidates: list[int] = []
+
         def _cb(hwnd: int, _: object) -> bool:
             if not win32gui.IsWindowVisible(hwnd):
                 return True
@@ -457,6 +477,7 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
             if "open" in title or "import" in title:
                 candidates.append(hwnd)
             return True
+
         win32gui.EnumWindows(_cb, None)
         return candidates[-1] if candidates else None
 
@@ -512,7 +533,9 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
             # Fallback: widest Edit
             fn_hwnd = max(
                 edit_hwnds,
-                key=lambda h: win32gui.GetWindowRect(h)[2] - win32gui.GetWindowRect(h)[0],
+                key=lambda h: (
+                    win32gui.GetWindowRect(h)[2] - win32gui.GetWindowRect(h)[0]
+                ),
             )
 
     if fn_hwnd is None:
@@ -531,21 +554,29 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
 
     # Select all existing text with Ctrl+A, then delete it.
     _VK_CONTROL = 0x11
-    _VK_A       = 0x41
+    _VK_A = 0x41
 
     def _key_down(vk: int) -> _INPUT:
-        return _INPUT(type=_INPUT_KEYBOARD,
-                      _=_INPUT_UNION(ki=_KEYBDINPUT(wVk=vk, wScan=0, dwFlags=0,
-                                                    time=0, dwExtraInfo=None)))
+        return _INPUT(
+            type=_INPUT_KEYBOARD,
+            _=_INPUT_UNION(
+                ki=_KEYBDINPUT(wVk=vk, wScan=0, dwFlags=0, time=0, dwExtraInfo=None)
+            ),
+        )
 
     def _key_up(vk: int) -> _INPUT:
-        return _INPUT(type=_INPUT_KEYBOARD,
-                      _=_INPUT_UNION(ki=_KEYBDINPUT(wVk=vk, wScan=0,
-                                                    dwFlags=_KEYEVENTF_KEYUP,
-                                                    time=0, dwExtraInfo=None)))
+        return _INPUT(
+            type=_INPUT_KEYBOARD,
+            _=_INPUT_UNION(
+                ki=_KEYBDINPUT(
+                    wVk=vk, wScan=0, dwFlags=_KEYEVENTF_KEYUP, time=0, dwExtraInfo=None
+                )
+            ),
+        )
 
-    ctrl_a = (_INPUT * 4)(_key_down(_VK_CONTROL), _key_down(_VK_A),
-                           _key_up(_VK_A), _key_up(_VK_CONTROL))
+    ctrl_a = (_INPUT * 4)(
+        _key_down(_VK_CONTROL), _key_down(_VK_A), _key_up(_VK_A), _key_up(_VK_CONTROL)
+    )
     ctypes.windll.user32.SendInput(4, ctrl_a, ctypes.sizeof(_INPUT))
     time.sleep(0.05)
 
@@ -559,15 +590,27 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
     for i, ch in enumerate(chars):
         char_inputs[i * 2] = _INPUT(
             type=_INPUT_KEYBOARD,
-            _=_INPUT_UNION(ki=_KEYBDINPUT(wVk=0, wScan=ord(ch),
-                                          dwFlags=_KEYEVENTF_UNICODE,
-                                          time=0, dwExtraInfo=None)),
+            _=_INPUT_UNION(
+                ki=_KEYBDINPUT(
+                    wVk=0,
+                    wScan=ord(ch),
+                    dwFlags=_KEYEVENTF_UNICODE,
+                    time=0,
+                    dwExtraInfo=None,
+                )
+            ),
         )
         char_inputs[i * 2 + 1] = _INPUT(
             type=_INPUT_KEYBOARD,
-            _=_INPUT_UNION(ki=_KEYBDINPUT(wVk=0, wScan=ord(ch),
-                                          dwFlags=_KEYEVENTF_UNICODE | _KEYEVENTF_KEYUP,
-                                          time=0, dwExtraInfo=None)),
+            _=_INPUT_UNION(
+                ki=_KEYBDINPUT(
+                    wVk=0,
+                    wScan=ord(ch),
+                    dwFlags=_KEYEVENTF_UNICODE | _KEYEVENTF_KEYUP,
+                    time=0,
+                    dwExtraInfo=None,
+                )
+            ),
         )
     ctypes.windll.user32.SendInput(n * 2, char_inputs, ctypes.sizeof(_INPUT))
     time.sleep(0.15)

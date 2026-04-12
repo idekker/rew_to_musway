@@ -121,7 +121,7 @@ class GeneratorClient:
         d = await self._http.get("/generator/frequency")
         if isinstance(d, dict):
             val = d.get("value")
-            return float(val) if val is not None else None
+            return float(val) if val is not None and isinstance(val, str) else None
         # bare scalar (future-proofing)
         return float(d) if d is not None else None
 

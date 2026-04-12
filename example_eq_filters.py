@@ -30,7 +30,9 @@ from pathlib import Path
 
 # Force UTF-8 output on cp1252 consoles (Windows), with line buffering so
 # print() output appears immediately rather than at process exit.
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
+sys.stdout = io.TextIOWrapper(
+    sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True
+)
 
 from aiorew import REWClient, Equaliser, MatchTargetSettings, Smoothing, TargetShape
 
@@ -43,33 +45,33 @@ REW_PORT = 4735
 
 # Script directory — paths are resolved relative to it
 SCRIPT_DIR = Path(__file__).parent
-TEST_FILES  = SCRIPT_DIR / "test_files"
+TEST_FILES = SCRIPT_DIR / "test_files"
 
-MDAT_INPUT      = TEST_FILES / "measurement_for_eq.mdat"
-HOUSE_CURVE     = TEST_FILES / "house_curve.txt"
-FILTER_OUTPUT   = TEST_FILES / "filter.json"
-MDAT_OUTPUT     = TEST_FILES / "after_eq.mdat"
+MDAT_INPUT = TEST_FILES / "measurement_for_eq.mdat"
+HOUSE_CURVE = TEST_FILES / "house_curve.txt"
+FILTER_OUTPUT = TEST_FILES / "filter.json"
+MDAT_OUTPUT = TEST_FILES / "after_eq.mdat"
 
 EQ_MANUFACTURER = "Musway"
-EQ_MODEL        = "31 bands (Output)"
+EQ_MODEL = "31 bands (Output)"
 
 # Match-target limits
-MATCH_START_HZ          = 40.0
-MATCH_END_HZ            = 20_000.0
-MATCH_INDIVIDUAL_BOOST  = 6.0   # dB
-MATCH_OVERALL_BOOST     = 6.0   # dB
-MATCH_FLATNESS          = 1.0   # dB
-SHELF_MIN               = -6.0  # dB
-SHELF_MAX               =  6.0  # dB
+MATCH_START_HZ = 40.0
+MATCH_END_HZ = 20_000.0
+MATCH_INDIVIDUAL_BOOST = 6.0  # dB
+MATCH_OVERALL_BOOST = 6.0  # dB
+MATCH_FLATNESS = 1.0  # dB
+SHELF_MIN = -6.0  # dB
+SHELF_MAX = 6.0  # dB
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
+
 async def main() -> None:
     async with REWClient(host=REW_HOST, port=REW_PORT) as rew:
-
         # ------------------------------------------------------------------ #
         # 1. Delete all existing measurements
         # ------------------------------------------------------------------ #
@@ -103,10 +105,13 @@ async def main() -> None:
         # 3. Set equaliser to Musway M DSP 31 Band
         # ------------------------------------------------------------------ #
         print(f"Setting equaliser to {EQ_MANUFACTURER!r} / {EQ_MODEL!r}...")
-        await rew.measurements.set_equaliser(uuid, Equaliser(
-            manufacturer=EQ_MANUFACTURER,
-            model=EQ_MODEL,
-        ))
+        await rew.measurements.set_equaliser(
+            uuid,
+            Equaliser(
+                manufacturer=EQ_MANUFACTURER,
+                model=EQ_MODEL,
+            ),
+        )
         print("  Done.")
 
         # ------------------------------------------------------------------ #
@@ -143,21 +148,23 @@ async def main() -> None:
         # 5. Set match-target settings
         # ------------------------------------------------------------------ #
         print("Configuring match-target settings...")
-        await rew.eq.set_match_target_settings(MatchTargetSettings(
-            startFrequency=MATCH_START_HZ,
-            endFrequency=MATCH_END_HZ,
-            individualMaxBoostdB=MATCH_INDIVIDUAL_BOOST,
-            overallMaxBoostdB=MATCH_OVERALL_BOOST,
-            flatnessTargetdB=MATCH_FLATNESS,
-            allowNarrowFiltersBelow200Hz=True,
-            varyQAbove200Hz=True,
-            allowLowShelf=True,
-            lowShelfMin=SHELF_MIN,
-            lowShelfMax=SHELF_MAX,
-            allowHighShelf=True,
-            highShelfMin=SHELF_MIN,
-            highShelfMax=SHELF_MAX,
-        ))
+        await rew.eq.set_match_target_settings(
+            MatchTargetSettings(
+                startFrequency=MATCH_START_HZ,
+                endFrequency=MATCH_END_HZ,
+                individualMaxBoostdB=MATCH_INDIVIDUAL_BOOST,
+                overallMaxBoostdB=MATCH_OVERALL_BOOST,
+                flatnessTargetdB=MATCH_FLATNESS,
+                allowNarrowFiltersBelow200Hz=True,
+                varyQAbove200Hz=True,
+                allowLowShelf=True,
+                lowShelfMin=SHELF_MIN,
+                lowShelfMax=SHELF_MAX,
+                allowHighShelf=True,
+                highShelfMin=SHELF_MIN,
+                highShelfMax=SHELF_MAX,
+            )
+        )
         print("  Done.")
 
         # ------------------------------------------------------------------ #
@@ -210,14 +217,10 @@ async def main() -> None:
 
         print("=" * 60)
 
+
 def _write_filter_json(path, filters, model, channel):
     with open(path, "w") as file:
-        doc = {
-            "model": model,
-            "location": channel,
-            "fileMagic": "autoIIR",
-            "eq": [],
-        }
+        eqs = []
         for f in filters:
             eq = {
                 "number": f.index,
@@ -226,7 +229,14 @@ def _write_filter_json(path, filters, model, channel):
                 "gain": round(f.gaindB, 1),
                 "q": round(f.q, 2),
             }
-            doc["eq"].append(eq)
+            eqs.append(eq)
+
+        doc = {
+            "model": model,
+            "location": channel,
+            "fileMagic": "autoIIR",
+            "eq": eqs,
+        }
 
         json.dump(doc, file, indent=2)
 

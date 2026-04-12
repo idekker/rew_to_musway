@@ -32,6 +32,7 @@ EQ_PRESET_PATH = r"F:\Personal\Ino\SynologyDrive\Hobby\DSP\Ioniq 5\20260411\lf.j
 
 from tunest_pc import TunestPC, FilterType, FilterSlope, TunestConnectionError
 
+
 def main() -> None:
     t = TunestPC()
 
@@ -95,6 +96,7 @@ def main() -> None:
     #    (skip if the file doesn't exist — just a demo)
     # ------------------------------------------------------------------ #
     import os
+
     if os.path.isfile(EQ_PRESET_PATH):
         print(f"Importing EQ preset to CH1 from {EQ_PRESET_PATH}…")
         t.import_eq(channel=1, json_path=EQ_PRESET_PATH)
