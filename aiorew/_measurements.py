@@ -33,6 +33,9 @@ from ._models import (
     RoomCurveSettings,
     TargetSettings,
     Smoothing,
+    ProcessMeasurements,
+    ProcessCommand,
+    ArithmeticFunction,
 )
 
 
@@ -484,12 +487,46 @@ class MeasurementsClient:
         """Return the available process-measurements command names."""
         return await self._http.get("/measurements/process-commands")
 
-    async def process_measurements(
+    async def align_spl(
         self,
         uuids: List[UUID],
-        process_name: str,
+        target_db: float,
+        frequency_hz: float,
+        span_octaves: int,
+    ) -> ProcessResult:
+        command = ProcessMeasurements(
+            processName=ProcessCommand.ALIGN_SPL,
+            measurementIndices=[],
+            measurementUUIDs=uuids,
+            parameters=dict(
+                targetdB=target_db, frequencyHz=frequency_hz, spanOctaves=span_octaves
+            ),
+        )
+        return await self._process_measurements(
+            command, poll_interval=0.5, timeout=None
+        )
+
+    async def arithmetic(
+        self,
+        uuids: List[UUID],
+        function: ArithmeticFunction,
         parameters: Optional[Dict[str, Any]] = None,
-        *,
+    ) -> ProcessResult:
+        params = parameters or dict()
+        params["function"] = function.value
+        command = ProcessMeasurements(
+            processName=ProcessCommand.ARITHMETIC,
+            measurementIndices=[],
+            measurementUUIDs=uuids,
+            parameters=params,
+        )
+        return await self._process_measurements(
+            command, poll_interval=0.5, timeout=None
+        )
+
+    async def _process_measurements(
+        self,
+        command: ProcessMeasurements,
         poll_interval: float = 0.5,
         timeout: Optional[float] = None,
     ) -> ProcessResult:
@@ -498,13 +535,8 @@ class MeasurementsClient:
 
         Parameters
         ----------
-        uuids:
-            List of measurement UUIDs to process.
-        process_name:
-            Process command name (e.g. 'Align SPL', 'Arithmetic', 'dB average').
-            Available: get_process_commands().
-        parameters:
-            Optional dict of process-specific parameters.
+        command:
+            ProcessMeasurements object defining the command to run.
         poll_interval:
             Seconds between status polls (default 0.5).
         timeout:
@@ -532,14 +564,10 @@ class MeasurementsClient:
                 {"function": "A * B"},
             )
         """
-        body: Dict[str, Any] = {
-            "processName": process_name,
-            "measurementIndices": [str(u) for u in uuids],
-        }
-        if parameters:
-            body["parameters"] = parameters
 
-        rsp = await self._http.post("/measurements/process-measurements", body)
+        rsp = await self._http.post(
+            "/measurements/process-measurements", command.to_dict()
+        )
         command_message = rsp.get("message")
 
         return await self._wait_for_completion(command_message, poll_interval, timeout)

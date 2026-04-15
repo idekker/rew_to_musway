@@ -69,6 +69,7 @@ from ._models import (
     SPLMode,
     SPLWeighing,
     SPLFilter,
+    ArithmeticFunction,
 )
 from uuid import UUID
 
@@ -91,6 +92,7 @@ __all__ = [
     "ProcessResult",
     "TargetShape",
     "Smoothing",
+    "ArithmeticFunction",
     # Generator
     "GeneratorSignal",
     "GeneratorLevelUnit",

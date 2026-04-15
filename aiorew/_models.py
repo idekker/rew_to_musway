@@ -377,6 +377,61 @@ class ProcessResult:
         )
 
 
+class ProcessCommand(Enum):
+    """Represents a long-running REW command."""
+
+    ALIGN_SPL = "Align SPL"
+    TIME_ALIGN = "Time align"
+    ALIGN_IR_START = "Align IR start"
+    CROSS_CORR_ALIGN = "Cross corr align"
+    VECTOR_AVERAGE = "Vector average"
+    RMS_AVERAGE = "RMS average"
+    DB_AVERAGE = "dB average"
+    MAGN_PLUS_PHASE_AVERAGE = "Magn plus phase average"
+    DB_PLUS_PHASE_AVERAGE = "dB plus phase average"
+    VECTOR_SUM = "Vector sum"
+    SMOOTH = "Smooth"
+    ARITHMETIC = "Arithmetic"
+    REMOVE_IR_DELAYS = "Remove IR delays"
+
+
+class ArithmeticFunction(Enum):
+    A_PLUS_B = "A + B"
+    A_MIN_B = "A - B"
+    A_TIMES_B = "A * B"
+    A_TIMES_B_CONJUGATE = "A * B conjugate"
+    A_OVER_B = "A / B"
+    A_MAGN_OVER_B_MAGN = "|A| / |B|"
+    A_PLUS_B_OVER_2 = "(A + B) / 2"
+    MERGE_B_TO_A = "Merge B to A"
+    ONE_OVER_A = "1 / A"
+    ONE_OVER_B = "1 / B"
+    ONE_OVER_A_MAGN = "1 / |A|"
+    ONE_OVER_B_MAGN = "1 / |B|"
+    INVERT_A_PHASE = "Invert A phase"
+    INVERT_B_PHASE = "Invert B phase"
+
+
+@dataclass
+class ProcessMeasurements:
+    """Measurements for a long-running REW command."""
+
+    processName: ProcessCommand
+    measurementIndices: List[int]
+    measurementUUIDs: List[UUID]
+    parameters: Dict[str, Any]
+    resultUrl: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "processName": self.processName.value,
+            "measurementIndices": self.measurementIndices,
+            "measurementUUIDs": [str(uuid) for uuid in self.measurementUUIDs],
+            "parameters": self.parameters,
+            "resultUrl": self.resultUrl,
+        }
+
+
 # ---------------------------------------------------------------------------
 # Audio
 # ---------------------------------------------------------------------------

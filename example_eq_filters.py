@@ -27,6 +27,7 @@ import json
 import sys
 import io
 from pathlib import Path
+from uuid import UUID
 
 # Force UTF-8 output on cp1252 consoles (Windows), with line buffering so
 # print() output appears immediately rather than at process exit.
@@ -34,7 +35,14 @@ sys.stdout = io.TextIOWrapper(
     sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True
 )
 
-from aiorew import REWClient, Equaliser, MatchTargetSettings, Smoothing, TargetShape
+from aiorew import (
+    REWClient,
+    Equaliser,
+    MatchTargetSettings,
+    Smoothing,
+    TargetShape,
+    ArithmeticFunction,
+)
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -187,6 +195,11 @@ async def main() -> None:
         # ------------------------------------------------------------------ #
         print("Generating predicted measurement...")
         results = await rew.measurements.generate_predicted_measurement(uuid)
+        print(f"  Result: {results}")
+
+        results = await rew.measurements.arithmetic(
+            [uuid, UUID(results["2"]["UUID"])], ArithmeticFunction.A_MIN_B
+        )
         print(f"  Result: {results}")
 
         # ------------------------------------------------------------------ #
