@@ -1,5 +1,4 @@
-"""
-_audio.py - AudioClient for REW audio device and calibration control.
+"""_audio.py - AudioClient for REW audio device and calibration control.
 
 Covers:
   - Driver selection (/audio/driver)
@@ -35,15 +34,16 @@ Response-shape notes (confirmed against live API):
 
 from __future__ import annotations
 
-from typing import List
+from typing import TYPE_CHECKING
 
-from ._http import _HTTPClient
 from ._models import InputCalConfig, OutputCalConfig
+
+if TYPE_CHECKING:
+    from ._http import _HTTPClient
 
 
 class AudioClient:
-    """
-    Control REW's audio input/output devices and calibration.
+    """Control REW's audio input/output devices and calibration.
 
     Instantiated by REWClient - do not construct directly.
     """
@@ -64,7 +64,7 @@ class AudioClient:
         """Set the active audio driver. Available choices: get_driver_types()."""
         await self._http.post("/audio/driver", driver)
 
-    async def get_driver_types(self) -> List[str]:
+    async def get_driver_types(self) -> list[str]:
         """Return the list of available audio driver names."""
         return await self._http.get("/audio/driver-types")
 
@@ -81,7 +81,7 @@ class AudioClient:
         """Set the sample rate. *rate* in Hz (e.g. 48000)."""
         await self._http.post("/audio/samplerate", rate)
 
-    async def get_sample_rates(self) -> List[int]:
+    async def get_sample_rates(self) -> list[int]:
         """Return the sample rates supported by the current interface."""
         items = await self._http.get("/audio/samplerates")
         return [int(r["value"]) for r in items]
@@ -90,11 +90,11 @@ class AudioClient:
     # Java - devices
     # ------------------------------------------------------------------
 
-    async def get_java_input_devices(self) -> List[str]:
+    async def get_java_input_devices(self) -> list[str]:
         """Return available Java input device names."""
         return await self._http.get("/audio/java/input-devices")
 
-    async def get_java_output_devices(self) -> List[str]:
+    async def get_java_output_devices(self) -> list[str]:
         """Return available Java output device names."""
         return await self._http.get("/audio/java/output-devices")
 
@@ -120,11 +120,11 @@ class AudioClient:
     # Java - inputs / outputs
     # ------------------------------------------------------------------
 
-    async def get_java_inputs(self) -> List[str]:
+    async def get_java_inputs(self) -> list[str]:
         """Return available Java input names for the selected device."""
         return await self._http.get("/audio/java/inputs")
 
-    async def get_java_outputs(self) -> List[str]:
+    async def get_java_outputs(self) -> list[str]:
         """Return available Java output names for the selected device."""
         return await self._http.get("/audio/java/outputs")
 
@@ -189,7 +189,7 @@ class AudioClient:
     # ASIO - device
     # ------------------------------------------------------------------
 
-    async def get_asio_devices(self) -> List[str]:
+    async def get_asio_devices(self) -> list[str]:
         """Return available ASIO device names."""
         return await self._http.get("/audio/asio/devices")
 
@@ -206,11 +206,11 @@ class AudioClient:
     # ASIO - inputs / outputs
     # ------------------------------------------------------------------
 
-    async def get_asio_inputs(self) -> List[str]:
+    async def get_asio_inputs(self) -> list[str]:
         """Return available ASIO input names for the selected device."""
         return await self._http.get("/audio/asio/inputs")
 
-    async def get_asio_outputs(self) -> List[str]:
+    async def get_asio_outputs(self) -> list[str]:
         """Return available ASIO output names for the selected device."""
         return await self._http.get("/audio/asio/outputs")
 
@@ -246,8 +246,7 @@ class AudioClient:
         return InputCalConfig.from_dict(data)
 
     async def set_input_cal(self, config: InputCalConfig) -> None:
-        """
-        Update the input calibration configuration.
+        """Update the input calibration configuration.
 
         To clear the cal file, set config.calDataAllInputs.calFilePath to "".
         Use forward slashes or double-backslashes in file paths.
@@ -260,8 +259,7 @@ class AudioClient:
         return OutputCalConfig.from_dict(data)
 
     async def set_output_cal(self, config: OutputCalConfig) -> None:
-        """
-        Update the output calibration configuration.
+        """Update the output calibration configuration.
 
         To clear the cal file, set config.calData.calFilePath to "".
         """

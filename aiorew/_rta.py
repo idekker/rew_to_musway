@@ -1,5 +1,4 @@
-"""
-_rta.py - RTAClient for REW Real-Time Analyzer control.
+"""_rta.py - RTAClient for REW Real-Time Analyzer control.
 
 Covers /rta/* endpoints:
   - Start / stop commands
@@ -11,15 +10,16 @@ Covers /rta/* endpoints:
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import TYPE_CHECKING
 
-from ._http import _HTTPClient
 from ._models import FrequencyResponse, RTAConfiguration, RTAStatus
+
+if TYPE_CHECKING:
+    from ._http import _HTTPClient
 
 
 class RTAClient:
-    """
-    Control the REW Real-Time Analyzer.
+    """Control the REW Real-Time Analyzer.
 
     Instantiated by REWClient - do not construct directly.
 
@@ -53,8 +53,7 @@ class RTAClient:
         await self._http.post("/rta/command", {"command": "Stop"})
 
     async def save(self) -> None:
-        """
-        Save the current RTA data as a new measurement.
+        """Save the current RTA data as a new measurement.
 
         This method returns None - to obtain the UUID of the saved measurement
         use REWClient.save_rta(), which calls this method then queries the
@@ -78,10 +77,9 @@ class RTAClient:
     async def wait_until_stopped(
         self,
         poll_interval: float = 0.5,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ) -> None:
-        """
-        Block until the RTA stops running.
+        """Block until the RTA stops running.
 
         First waits for the RTA to report running=True (it may take a moment
         to start after the Start command), then polls until running=False.
@@ -93,6 +91,7 @@ class RTAClient:
             Seconds between status polls (default 0.5).
         timeout:
             Optional maximum seconds to wait before raising TimeoutError.
+
         """
 
         async def _check() -> RTAStatus:
@@ -124,8 +123,7 @@ class RTAClient:
         return RTAConfiguration.from_dict(data)
 
     async def set_configuration(self, config: RTAConfiguration) -> None:
-        """
-        Update the RTA configuration.
+        """Update the RTA configuration.
 
         The API requires a complete configuration object - partial objects are
         rejected with HTTP 400.  This method reads the current configuration
@@ -142,11 +140,10 @@ class RTAClient:
 
     async def get_captured_data(
         self,
-        unit: Optional[str] = None,
-        index: Optional[int] = None,
+        unit: str | None = None,
+        index: int | None = None,
     ) -> FrequencyResponse:
-        """
-        Return the current RTA RMS-averaged captured data as a FrequencyResponse.
+        """Return the current RTA RMS-averaged captured data as a FrequencyResponse.
 
         magnitude is a numpy array; phase is absent for RTA data.
 
@@ -157,17 +154,17 @@ class RTAClient:
         index:
             Input index for multi-input setups (default: RMS average of all
             inputs).
+
         """
         data = await self._http.get("/rta/captured-data", unit=unit, index=index)
         return FrequencyResponse.from_dict(data)
 
     async def get_captured_peak_data(
         self,
-        unit: Optional[str] = None,
-        index: Optional[int] = None,
+        unit: str | None = None,
+        index: int | None = None,
     ) -> FrequencyResponse:
-        """
-        Return the current RTA peak captured data as a FrequencyResponse.
+        """Return the current RTA peak captured data as a FrequencyResponse.
 
         Parameters
         ----------
@@ -175,6 +172,7 @@ class RTAClient:
             Magnitude unit (e.g. 'SPL', 'dBFS'). Defaults to SPL.
         index:
             Input index for multi-input setups.
+
         """
         data = await self._http.get("/rta/captured-peak-data", unit=unit, index=index)
         return FrequencyResponse.from_dict(data)

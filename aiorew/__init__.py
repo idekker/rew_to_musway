@@ -1,5 +1,4 @@
-"""
-aiorew - async Python client for the REW (Room EQ Wizard) REST API.
+"""aiorew - async Python client for the REW (Room EQ Wizard) REST API.
 
 Public surface::
 
@@ -35,17 +34,23 @@ Example::
     asyncio.run(main())
 """
 
+from uuid import UUID
+
 from ._client import REWClient
 from ._http import REWError
 from ._models import (
+    ArithmeticFunction,
     Equaliser,
     FilterSetting,
     FrequencyResponse,
+    GeneratorLevelUnit,
+    GeneratorSignal,
     GeneratorStatus,
     ImpulseResponse,
     InputCalAllInputs,
     InputCalConfig,
     InputLevels,
+    InputLevelsUnit,
     IRWindows,
     MatchTargetSettings,
     MeasurementSummary,
@@ -53,70 +58,65 @@ from ._models import (
     OutputCalData,
     OutputCalSampleRate,
     ProcessResult,
+    RoomCurveSettings,
     RTAConfiguration,
     RTAStatus,
-    RoomCurveSettings,
+    Smoothing,
+    SPLFilter,
     SPLMeterConfiguration,
+    SPLMode,
     SPLValues,
+    SPLWeighing,
     TargetSettings,
+    TargetShape,
     decode_float_array,
     encode_float_array,
-    TargetShape,
-    Smoothing,
-    GeneratorSignal,
-    InputLevelsUnit,
-    GeneratorLevelUnit,
-    SPLMode,
-    SPLWeighing,
-    SPLFilter,
-    ArithmeticFunction,
 )
-from uuid import UUID
 
 __all__ = [
+    # UUID type (re-exported for convenience)
+    "UUID",
+    "ArithmeticFunction",
+    "Equaliser",
+    "FilterSetting",
+    "FrequencyResponse",
+    "GeneratorLevelUnit",
+    # Generator
+    "GeneratorSignal",
+    "GeneratorStatus",
+    "IRWindows",
+    "ImpulseResponse",
+    "InputCalAllInputs",
+    # Audio calibration
+    "InputCalConfig",
+    "InputLevels",
+    # Input levels
+    "InputLevelsUnit",
+    # EQ defaults
+    "MatchTargetSettings",
+    # Measurement models
+    "MeasurementSummary",
+    "OutputCalConfig",
+    "OutputCalData",
+    "OutputCalSampleRate",
+    "ProcessResult",
     # Client
     "REWClient",
     # Error
     "REWError",
-    # UUID type (re-exported for convenience)
-    "UUID",
-    # Measurement models
-    "MeasurementSummary",
-    "FrequencyResponse",
-    "ImpulseResponse",
-    "IRWindows",
-    "FilterSetting",
-    "Equaliser",
-    "TargetSettings",
-    "RoomCurveSettings",
-    "ProcessResult",
-    "TargetShape",
-    "Smoothing",
-    "ArithmeticFunction",
-    # Generator
-    "GeneratorSignal",
-    "GeneratorLevelUnit",
-    "GeneratorStatus",
-    # SPL meter
-    "SPLMode",
-    "SPLWeighing",
-    "SPLFilter",
-    "SPLMeterConfiguration",
-    "SPLValues",
     # RTA
     "RTAConfiguration",
     "RTAStatus",
-    # Input levels
-    "InputLevelsUnit",
-    "InputLevels",
-    # EQ defaults
-    "MatchTargetSettings",
-    # Audio calibration
-    "InputCalConfig",
-    "InputCalAllInputs",
-    "OutputCalConfig",
-    "OutputCalData",
-    "OutputCalSampleRate",
+    "RoomCurveSettings",
+    "SPLFilter",
+    "SPLMeterConfiguration",
+    # SPL meter
+    "SPLMode",
+    "SPLValues",
+    "SPLWeighing",
+    "Smoothing",
+    "TargetSettings",
+    "TargetShape",
     # Array codec helpers
     "decode_float_array",
     "encode_float_array",

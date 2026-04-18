@@ -1,5 +1,4 @@
-"""
-_eq.py - EQDefaultsClient for REW global EQ default settings.
+"""_eq.py - EQDefaultsClient for REW global EQ default settings.
 
 Covers /eq/* endpoints:
   - Equaliser list / manufacturers
@@ -13,15 +12,16 @@ Covers /eq/* endpoints:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
-from ._http import _HTTPClient
 from ._models import Equaliser, MatchTargetSettings, RoomCurveSettings, TargetSettings
+
+if TYPE_CHECKING:
+    from ._http import _HTTPClient
 
 
 class EQDefaultsClient:
-    """
-    Read and write REW's global EQ defaults (applied to new measurements).
+    """Read and write REW's global EQ defaults (applied to new measurements).
 
     These settings are distinct from per-measurement settings - see
     MeasurementsClient for per-measurement EQ control.
@@ -36,17 +36,15 @@ class EQDefaultsClient:
     # Equaliser list
     # ------------------------------------------------------------------
 
-    async def get_equalisers(
-        self, manufacturer: Optional[str] = None
-    ) -> List[Equaliser]:
-        """
-        Return the list of available equalisers.
+    async def get_equalisers(self, manufacturer: str | None = None) -> list[Equaliser]:
+        """Return the list of available equalisers.
 
         Parameters
         ----------
         manufacturer:
             Filter by manufacturer name (e.g. 'MiniDSP', 'Musway').
             Returns all equalisers when omitted.
+
         """
         data = await self._http.get(
             "/eq/equalisers",
@@ -55,7 +53,7 @@ class EQDefaultsClient:
         # API returns a plain list (confirmed via httpx against live REW)
         return [Equaliser.from_dict(e) for e in data]
 
-    async def get_manufacturers(self) -> List[str]:
+    async def get_manufacturers(self) -> list[str]:
         """Return the list of equaliser manufacturer names."""
         return await self._http.get("/eq/manufacturers")
 
@@ -125,8 +123,7 @@ class EQDefaultsClient:
     async def set_house_curve(
         self, path: str, *, log_interpolation: bool = True
     ) -> None:
-        """
-        Set the house curve file path.
+        """Set the house curve file path.
 
         Parameters
         ----------
@@ -135,6 +132,7 @@ class EQDefaultsClient:
         log_interpolation:
             Whether to use log interpolation when reading the file.
             Must be set before the file path - this method handles the order.
+
         """
         await self._http.post("/eq/house-curve-log-interpolation", log_interpolation)
         await self._http.post("/eq/house-curve", path)
@@ -160,15 +158,14 @@ class EQDefaultsClient:
     # Global EQ commands
     # ------------------------------------------------------------------
 
-    async def get_commands(self) -> List[str]:
+    async def get_commands(self) -> list[str]:
         """Return the list of global EQ command names."""
         return await self._http.get("/eq/commands")
 
     async def _run_command(
-        self, command: str, parameters: Optional[Dict[str, Any]] = None
+        self, command: str, parameters: dict[str, Any] | None = None
     ) -> None:
-        """
-        Issue a global EQ command (e.g. 'Match target' across all measurements).
+        """Issue a global EQ command (e.g. 'Match target' across all measurements).
 
         Parameters
         ----------
@@ -176,8 +173,9 @@ class EQDefaultsClient:
             Command name. Available: get_commands().
         parameters:
             Optional parameters dict.
+
         """
-        body: Dict[str, Any] = {"command": command}
+        body: dict[str, Any] = {"command": command}
         if parameters:
             body["parameters"] = parameters
         await self._http.post("/eq/command", body)

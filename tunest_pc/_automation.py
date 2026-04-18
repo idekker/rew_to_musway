@@ -1,5 +1,4 @@
-"""
-Low-level UI Automation helpers for Tunest PC.
+"""Low-level UI Automation helpers for Tunest PC.
 
 Wraps comtypes-based UIA, win32api mouse/keyboard, and pywin32 for file
 dialogs.  All public functions raise TunestAutomationError on failure.
@@ -9,8 +8,9 @@ from __future__ import annotations
 
 import ctypes
 import ctypes.wintypes
+import logging
 import time
-from typing import Optional, Any
+from typing import TYPE_CHECKING, Any
 
 import comtypes
 import comtypes.client
@@ -22,12 +22,17 @@ from ._constants import (
     DIALOG_DISMISS_SLEEP,
 )
 
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
 # COM initialisation
 # ---------------------------------------------------------------------------
 # Generate / cache the UIA type-lib wrapper on first import.
 comtypes.client.GetModule("UIAutomationCore.dll")
-import comtypes.gen.UIAutomationClient as UIAC  # noqa: N814,E402  (must be after GetModule)
+import comtypes.gen.UIAutomationClient as UIAC  # noqa: E402,N817  (must be after GetModule)
+
+if TYPE_CHECKING:
+    from _ctypes import Array
 
 
 class TunestAutomationError(Exception):
@@ -37,12 +42,12 @@ class TunestAutomationError(Exception):
 # ---------------------------------------------------------------------------
 # UIA singleton
 # ---------------------------------------------------------------------------
-_uia: Optional[UIAC.IUIAutomation] = None
+_uia: UIAC.IUIAutomation | None = None
 
 
 def get_uia() -> UIAC.IUIAutomation | Any:
     """Return (or create) the IUIAutomation COM object."""
-    global _uia
+    global _uia  # noqa: PLW0603
     if _uia is None:
         _uia = comtypes.client.CreateObject(
             UIAC.CUIAutomation._reg_clsid_,
@@ -55,10 +60,11 @@ def get_uia() -> UIAC.IUIAutomation | Any:
 # Window / element finders
 # ---------------------------------------------------------------------------
 
+FILENAME_EDIT_COMBOBOX_WIDTH = 400
 
-def hwnd_from_class(window_class: str, title: Optional[str] = None) -> Optional[int]:
-    """
-    Return the HWND of the main top-level window for Tunest PC.
+
+def hwnd_from_class(window_class: str, title: str | None = None) -> int | None:
+    """Return the HWND of the main top-level window for Tunest PC.
 
     When *title* is provided, both class AND title must match.
     When only *window_class* is given, class alone must match.
@@ -93,21 +99,21 @@ def element_from_hwnd(hwnd: int) -> UIAC.IUIAutomationElement:
     uia = get_uia()
     elem = uia.ElementFromHandle(hwnd)
     if elem is None:
-        raise TunestAutomationError(f"No UIA element for HWND {hwnd:#010x}")
+        msg = f"No UIA element for HWND {hwnd:#010x}"
+        raise TunestAutomationError(msg)
     return elem
 
 
 def find_child(
     parent: UIAC.IUIAutomationElement,
     control_type: int,
-    name: Optional[str] = None,
+    name: str | None = None,
     max_wait: float = 5.0,
     poll: float = 0.1,
 ) -> UIAC.IUIAutomationElement:
-    """
-    Search *parent*'s entire subtree for an element with the given
-    *control_type* (UIA_* constant) and optional *name*.  Polls up to
-    *max_wait* seconds.  Raises TunestAutomationError on timeout.
+    """Search *parent*'s entire subtree for an element with the given *control_type* (UIA_* constant) and optional *name*.
+
+    Polls up to *max_wait* seconds.  Raises TunestAutomationError on timeout.
     """
     uia = get_uia()
     conditions = [
@@ -130,14 +136,15 @@ def find_child(
             desc = f"ControlType={control_type}"
             if name:
                 desc += f" Name={name!r}"
-            raise TunestAutomationError(f"Timed out waiting for element: {desc}")
+            msg = f"Timed out waiting for element: {desc}"
+            raise TunestAutomationError(msg)
         time.sleep(poll)
 
 
 def find_all_children(
     parent: UIAC.IUIAutomationElement,
     control_type: int,
-    name: Optional[str] = None,
+    name: str | None = None,
 ) -> list[UIAC.IUIAutomationElement]:
     """Return all matching descendants (no wait)."""
     uia = get_uia()
@@ -170,7 +177,7 @@ def get_rect(elem: UIAC.IUIAutomationElement) -> tuple[int, int, int, int]:
 
 def centre(elem: UIAC.IUIAutomationElement) -> tuple[int, int]:
     """Return screen (x, y) of element centre."""
-    l, t, r, b = get_rect(elem)
+    l, t, r, b = get_rect(elem)  # noqa: E741
     return (l + r) // 2, (t + b) // 2
 
 
@@ -203,7 +210,7 @@ class _KEYBDINPUT(ctypes.Structure):
     ]
 
 
-class _INPUT_UNION(ctypes.Union):
+class _INPUT_UNION(ctypes.Union):  # noqa: N801
     _fields_ = [("mi", _MOUSEINPUT), ("ki", _KEYBDINPUT)]
 
 
@@ -309,9 +316,8 @@ def _get_pattern(
     elem: UIAC.IUIAutomationElement,
     pattern_id: int,
     iface_type: type,
-) -> Optional[object]:
-    """
-    Safely retrieve a UIA pattern interface from *elem*.
+) -> object | None:
+    """Safely retrieve a UIA pattern interface from *elem*.
 
     comtypes returns an IUnknown-level POINTER from GetCurrentPattern(); we
     must use comtypes.cast to get the correctly typed interface pointer.
@@ -322,10 +328,13 @@ def _get_pattern(
         return None
     try:
         ptr = comtypes.cast(raw, comtypes.POINTER(iface_type))
-        if not ptr:
-            return None
-        return ptr
-    except Exception:
+        if ptr:
+            return ptr
+    except Exception as exc:  # noqa: BLE001
+        msg = f"Error casting pattern {pattern_id} to {iface_type}: {exc}"
+        logger.fatal(msg)
+        return None
+    else:
         return None
 
 
@@ -336,13 +345,13 @@ def click_element(elem: UIAC.IUIAutomationElement) -> None:
 
 
 def click_at_rel(window_hwnd: int, rel_x: int, rel_y: int) -> None:
-    """
-    Click at a position relative to *window_hwnd*'s client area top-left.
+    """Click at a position relative to *window_hwnd*'s client area top-left.
+
     Converts to screen coords using GetWindowRect (includes title bar/border).
     We use the window element bounding rect to stay consistent with UIA coords.
     """
     elem = element_from_hwnd(window_hwnd)
-    l, t, _, _ = get_rect(elem)
+    l, t, _, _ = get_rect(elem)  # noqa: E741
     _send_click(l + rel_x, t + rel_y)
 
 
@@ -350,17 +359,17 @@ def get_value(elem: UIAC.IUIAutomationElement) -> str:
     """Read the ValuePattern value from an element."""
     vp = _get_pattern(elem, UIAC.UIA_ValuePatternId, UIAC.IUIAutomationValuePattern)
     if vp is None:
-        raise TunestAutomationError("Element does not support ValuePattern")
+        msg = "Element does not support ValuePattern"
+        raise TunestAutomationError(msg)
     return vp.CurrentValue
 
 
 def set_value(elem: UIAC.IUIAutomationElement, value: str) -> None:
-    """
-    Set an edit field via ValuePattern.SetValue, then confirm with Enter.
-    """
+    """Set an edit field via ValuePattern.SetValue, then confirm with Enter."""
     vp = _get_pattern(elem, UIAC.UIA_ValuePatternId, UIAC.IUIAutomationValuePattern)
     if vp is None:
-        raise TunestAutomationError("Element does not support ValuePattern")
+        msg = "Element does not support ValuePattern"
+        raise TunestAutomationError(msg)
     vp.SetValue(value)
     time.sleep(CLICK_SLEEP)
     _send_key(_VK_RETURN)
@@ -370,14 +379,15 @@ def get_toggle_state(elem: UIAC.IUIAutomationElement) -> int:
     """Return TogglePattern.CurrentToggleState (0=off, 1=on, 2=indeterminate)."""
     tp = _get_pattern(elem, UIAC.UIA_TogglePatternId, UIAC.IUIAutomationTogglePattern)
     if tp is None:
-        raise TunestAutomationError("Element does not support TogglePattern")
+        msg = "Element does not support TogglePattern"
+        raise TunestAutomationError(msg)
     return tp.CurrentToggleState
 
 
-def set_toggle(elem: UIAC.IUIAutomationElement, desired: bool) -> None:
+def set_toggle(elem: UIAC.IUIAutomationElement, desired: bool) -> None:  # noqa: FBT001
     """Set a checkbox to the desired state (True=checked / on)."""
     current = get_toggle_state(elem)
-    # ToggleState_On == 1
+    # ToggleState_On == 1  # noqa: ERA001
     if bool(current == 1) != desired:
         click_element(elem)
         time.sleep(CLICK_SLEEP)
@@ -402,8 +412,8 @@ def set_combobox(
     combo_elem: UIAC.IUIAutomationElement,
     target_value: str,
 ) -> None:
-    """
-    Expand a combobox, find the list item named *target_value*, and select it.
+    """Expand a combobox, find the list item named *target_value*, and select it.
+
     Falls back to ValuePattern.SetValue if ExpandCollapse is not supported.
     """
     # Try ExpandCollapsePattern
@@ -422,11 +432,12 @@ def set_combobox(
         item = combo_elem.FindFirst(UIAC.TreeScope_Subtree, name_cond)
         if item is None:
             ecp.Collapse()
-            raise TunestAutomationError(f"ComboBox item {target_value!r} not found")
+            msg = f"ComboBox item {target_value!r} not found"
+            raise TunestAutomationError(msg)
         click_element(item)
         return
 
-    # Fallback: ValuePattern
+    # Fallback: ValuePattern  # noqa: ERA001
     vp = _get_pattern(
         combo_elem, UIAC.UIA_ValuePatternId, UIAC.IUIAutomationValuePattern
     )
@@ -434,9 +445,8 @@ def set_combobox(
         vp.SetValue(target_value)
         return
 
-    raise TunestAutomationError(
-        "ComboBox supports neither ExpandCollapsePattern nor ValuePattern"
-    )
+    msg = "ComboBox supports neither ExpandCollapsePattern nor ValuePattern"
+    raise TunestAutomationError(msg)
 
 
 def get_combobox_value(combo_elem: UIAC.IUIAutomationElement) -> str:
@@ -449,39 +459,20 @@ def get_combobox_value(combo_elem: UIAC.IUIAutomationElement) -> str:
 # ---------------------------------------------------------------------------
 
 
-def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
-    """
-    Find the Windows common file-open dialog (#32770), set the filename
-    edit field to *file_path*, and click the Open/OK button.
+def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:  # noqa: C901
+    """Find the Windows common file-open dialog (#32770), set the filename edit field to *file_path*, and click the Open/OK button.
 
     Uses Win32 EnumChildWindows to locate the native Edit control inside
     the ComboBoxEx32 filename field, sends WM_SETTEXT, then BM_CLICK on
     the Open button.  This avoids UIA control-type queries which return
     no results for Qt-hosted dialogs.
     """
-
     # Poll for the dialog to appear.
     # FindWindow("#32770", None) may return an unrelated dialog (e.g. PuTTY error,
     # update notifications) because multiple #32770 windows can be open at once.
     # Enumerate all top-level windows and pick the visible #32770 titled "Open File"
     # or "Open" that was most recently activated (foreground first, then by creation).
-    def _find_open_file_dialog() -> Optional[int]:
-        candidates: list[int] = []
-
-        def _cb(hwnd: int, _: object) -> bool:
-            if not win32gui.IsWindowVisible(hwnd):
-                return True
-            if win32gui.GetClassName(hwnd) != "#32770":
-                return True
-            title = win32gui.GetWindowText(hwnd).lower()
-            if "open" in title or "import" in title:
-                candidates.append(hwnd)
-            return True
-
-        win32gui.EnumWindows(_cb, None)
-        return candidates[-1] if candidates else None
-
-    dialog_hwnd: Optional[int] = None
+    dialog_hwnd: int | None = None
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         dialog_hwnd = _find_open_file_dialog()
@@ -489,9 +480,8 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
             break
         time.sleep(0.1)
     if not dialog_hwnd:
-        raise TunestAutomationError(
-            "File open dialog (#32770) did not appear within timeout"
-        )
+        msg = "File open dialog (#32770) did not appear within timeout"
+        raise TunestAutomationError(msg)
 
     # Give the dialog a moment to fully render
     time.sleep(0.3)
@@ -500,16 +490,11 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
     #   - The Edit control inside the ComboBoxEx32 filename field
     #   - The Open / OK button
     edit_hwnds: list[int] = []
-    open_btn_hwnd: Optional[int] = None
 
     def _enum_cb(hwnd: int, _param: object) -> bool:
         cls = win32gui.GetClassName(hwnd)
-        txt = win32gui.GetWindowText(hwnd)
         if cls == "Edit":
             edit_hwnds.append(hwnd)
-        elif cls == "Button" and txt.lower().strip("&") in ("open", "ok"):
-            nonlocal open_btn_hwnd
-            open_btn_hwnd = hwnd
         return True  # continue enumeration
 
     win32gui.EnumChildWindows(dialog_hwnd, _enum_cb, None)
@@ -518,7 +503,7 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
     # When multiple Edit controls are found, pick the one that is a child of a
     # ComboBox class (the filename combo), not a plain Edit (the address bar Edit
     # has parent class ComboBox too, but is narrower; the filename one is wider).
-    fn_hwnd: Optional[int] = None
+    fn_hwnd: int | None = None
     if edit_hwnds:
         # Prefer the Edit whose Win32 parent class is 'ComboBox' and whose
         # screen width is >= 400px (filename box is ~514px wide).
@@ -526,7 +511,7 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
             parent_cls = win32gui.GetClassName(win32gui.GetParent(eh))
             rect = win32gui.GetWindowRect(eh)
             width = rect[2] - rect[0]
-            if parent_cls == "ComboBox" and width >= 400:
+            if parent_cls == "ComboBox" and width >= FILENAME_EDIT_COMBOBOX_WIDTH:
                 fn_hwnd = eh
                 break
         if fn_hwnd is None:
@@ -539,7 +524,8 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
             )
 
     if fn_hwnd is None:
-        raise TunestAutomationError("Could not find filename edit in file dialog")
+        msg = "Could not find filename edit in file dialog"
+        raise TunestAutomationError(msg)
 
     # Bring the dialog to the foreground so SendInput goes to it.
     ctypes.windll.user32.SetForegroundWindow(dialog_hwnd)
@@ -553,26 +539,8 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
     time.sleep(0.1)
 
     # Select all existing text with Ctrl+A, then delete it.
-    _VK_CONTROL = 0x11
-    _VK_A = 0x41
-
-    def _key_down(vk: int) -> _INPUT:
-        return _INPUT(
-            type=_INPUT_KEYBOARD,
-            _=_INPUT_UNION(
-                ki=_KEYBDINPUT(wVk=vk, wScan=0, dwFlags=0, time=0, dwExtraInfo=None)
-            ),
-        )
-
-    def _key_up(vk: int) -> _INPUT:
-        return _INPUT(
-            type=_INPUT_KEYBOARD,
-            _=_INPUT_UNION(
-                ki=_KEYBDINPUT(
-                    wVk=vk, wScan=0, dwFlags=_KEYEVENTF_KEYUP, time=0, dwExtraInfo=None
-                )
-            ),
-        )
+    _VK_CONTROL = 0x11  # noqa: N806
+    _VK_A = 0x41  # noqa: N806
 
     ctrl_a = (_INPUT * 4)(
         _key_down(_VK_CONTROL), _key_down(_VK_A), _key_up(_VK_A), _key_up(_VK_CONTROL)
@@ -583,9 +551,56 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
     # Type the file path using Unicode SendInput (KEYEVENTF_UNICODE).
     # This is the most reliable way to insert arbitrary text into a focused
     # edit control across process boundaries.
-    _KEYEVENTF_UNICODE = 0x0004
     chars = list(file_path)
     n = len(chars)
+    char_inputs = _generate_char_inputs(chars, n)
+    ctypes.windll.user32.SendInput(n * 2, char_inputs, ctypes.sizeof(_INPUT))
+    time.sleep(0.15)
+
+    # Press Enter to confirm the filename and close the dialog.
+    _send_key(_VK_RETURN)
+    time.sleep(DIALOG_DISMISS_SLEEP)
+
+
+def _find_open_file_dialog() -> int | None:
+    candidates: list[int] = []
+
+    def _cb(hwnd: int, _: object) -> bool:
+        if not win32gui.IsWindowVisible(hwnd):
+            return True
+        if win32gui.GetClassName(hwnd) != "#32770":
+            return True
+        title = win32gui.GetWindowText(hwnd).lower()
+        if "open" in title or "import" in title:
+            candidates.append(hwnd)
+        return True
+
+    win32gui.EnumWindows(_cb, None)
+    return candidates[-1] if candidates else None
+
+
+def _key_down(vk: int) -> _INPUT:
+    return _INPUT(
+        type=_INPUT_KEYBOARD,
+        _=_INPUT_UNION(
+            ki=_KEYBDINPUT(wVk=vk, wScan=0, dwFlags=0, time=0, dwExtraInfo=None)
+        ),
+    )
+
+
+def _key_up(vk: int) -> _INPUT:
+    return _INPUT(
+        type=_INPUT_KEYBOARD,
+        _=_INPUT_UNION(
+            ki=_KEYBDINPUT(
+                wVk=vk, wScan=0, dwFlags=_KEYEVENTF_KEYUP, time=0, dwExtraInfo=None
+            )
+        ),
+    )
+
+
+def _generate_char_inputs(chars: list[str], n: int) -> Array[_INPUT]:
+    _KEYEVENTF_UNICODE = 0x0004  # noqa: N806
     char_inputs = (_INPUT * (n * 2))()
     for i, ch in enumerate(chars):
         char_inputs[i * 2] = _INPUT(
@@ -612,9 +627,4 @@ def set_file_dialog_path(file_path: str, timeout: float = 5.0) -> None:
                 )
             ),
         )
-    ctypes.windll.user32.SendInput(n * 2, char_inputs, ctypes.sizeof(_INPUT))
-    time.sleep(0.15)
-
-    # Press Enter to confirm the filename and close the dialog.
-    _send_key(_VK_RETURN)
-    time.sleep(DIALOG_DISMISS_SLEEP)
+    return char_inputs

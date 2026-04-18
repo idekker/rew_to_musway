@@ -1,5 +1,4 @@
-"""
-Layout constants for Tunest PC (TUNEST_PC_V1) UI Automation.
+"""Layout constants for Tunest PC (TUNEST_PC_V1) UI Automation.
 
 All positions are window-relative (pixels from top-left of M6Window).
 Reference window size: W=1366, H=792.
@@ -17,7 +16,7 @@ MODEL_DIALOG_CLASS = "ModelSelectionPanel"
 RESET_EQ_DIALOG_CLASS = "Qt5152QWindowToolSaveBits"
 
 # ---------------------------------------------------------------------------
-# Timing (seconds)
+# Timing (seconds)  # noqa: ERA001
 # ---------------------------------------------------------------------------
 LAUNCH_POLL_INTERVAL = 0.5
 DEFAULT_LAUNCH_TIMEOUT = 15.0

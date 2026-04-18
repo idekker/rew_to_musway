@@ -1,5 +1,4 @@
-"""
-tunest_pc - Python automation library for Tunest PC (TUNEST_PC_V1).
+r"""tunest_pc - Python automation library for Tunest PC (TUNEST_PC_V1).
 
 Public surface::
 
@@ -15,16 +14,16 @@ Example::
     t.import_eq(2, r"C:\\presets\\my_eq.json")
 """
 
-from ._client import FilterSlope, FilterType, TunestPC
 from ._automation import TunestAutomationError
+from ._client import FilterSlope, FilterType, TunestPC
 from ._launcher import TunestConnectionError
 
 __all__ = [
-    "TunestPC",
-    "FilterType",
     "FilterSlope",
-    "TunestConnectionError",
+    "FilterType",
     "TunestAutomationError",
+    "TunestConnectionError",
+    "TunestPC",
 ]
 
 __version__ = "0.1.0"

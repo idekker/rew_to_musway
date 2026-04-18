@@ -1,5 +1,4 @@
-"""
-_client.py - REWClient, the top-level async client for the REW API.
+"""_client.py - REWClient, the top-level async client for the REW API.
 
 Usage::
 
@@ -33,9 +32,9 @@ Usage::
 from __future__ import annotations
 
 import asyncio
+from typing import TYPE_CHECKING
 
-from typing import Any
-from uuid import UUID
+from typing_extensions import Self
 
 from ._audio import AudioClient
 from ._eq import EQDefaultsClient
@@ -46,10 +45,12 @@ from ._measurements import MeasurementsClient
 from ._rta import RTAClient
 from ._spl_meter import SPLMeterClient
 
+if TYPE_CHECKING:
+    from uuid import UUID
+
 
 class REWClient:
-    """
-    Async client for the REW (Room EQ Wizard) REST API.
+    """Async client for the REW (Room EQ Wizard) REST API.
 
     All network I/O is async (asyncio + httpx).  Use as an async context
     manager to ensure the underlying HTTP connection is properly closed::
@@ -70,6 +71,7 @@ class REWClient:
         Hostname or IP address of the REW API server (default: 'localhost').
     port:
         Port number of the REW API server (default: 4735).
+
     """
 
     def __init__(self, host: str = "localhost", port: int = 4735) -> None:
@@ -96,11 +98,11 @@ class REWClient:
         """Close the underlying HTTP connection pool."""
         await self._http.close()
 
-    async def __aenter__(self) -> "REWClient":
+    async def __aenter__(self) -> Self:
         await self.connect()
         return self
 
-    async def __aexit__(self, *_: Any) -> None:
+    async def __aexit__(self, *_: object) -> None:
         await self.close()
 
     # ------------------------------------------------------------------
@@ -108,8 +110,7 @@ class REWClient:
     # ------------------------------------------------------------------
 
     async def save_rta(self) -> UUID:
-        """
-        Save the current RTA data as a new measurement and return its UUID.
+        """Save the current RTA data as a new measurement and return its UUID.
 
         This is a convenience method that combines two separate API concerns:
 
@@ -127,6 +128,7 @@ class REWClient:
         -------
         UUID
             UUID of the newly saved measurement.
+
         """
         await self.rta.save()
         await asyncio.sleep(1)
@@ -143,9 +145,8 @@ class REWClient:
             return data.get("version", str(data))
         return str(data)
 
-    async def set_blocking(self, enabled: bool) -> None:
-        """
-        Enable or disable REW's blocking mode.
+    async def set_blocking(self, enabled: bool) -> None:  # noqa: FBT001
+        """Enable or disable REW's blocking mode.
 
         When blocking is enabled, the API waits up to 10 seconds for commands
         to complete before responding.  Polling (the default approach used by
@@ -153,9 +154,8 @@ class REWClient:
         """
         await self._http.post("/application/blocking", enabled)
 
-    async def set_inhibit_graph_updates(self, enabled: bool) -> None:
-        """
-        Inhibit REW graph updates.
+    async def set_inhibit_graph_updates(self, enabled: bool) -> None:  # noqa: FBT001
+        """Inhibit REW graph updates.
 
         Useful when batch-modifying or deleting measurements to prevent REW
         from attempting to redraw graphs with partial data.
@@ -163,8 +163,7 @@ class REWClient:
         await self._http.post("/application/inhibit-graph-updates", enabled)
 
     async def shutdown(self) -> None:
-        """
-        Shut down REW.
+        """Shut down REW.
 
         Only meaningful when REW is running without a GUI (``-nogui`` flag).
         """

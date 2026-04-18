@@ -1,15 +1,33 @@
-"""
-TunestPC client - public API for Tunest PC (TUNEST_PC_V1) UI Automation.
-"""
+"""TunestPC client - public API for Tunest PC (TUNEST_PC_V1) UI Automation."""
 
 from __future__ import annotations
 
+import logging
 import time
 from enum import Enum
-from typing import Optional
 
+# UIAC is safe to import here: importing _automation above already triggered
+# comtypes.client.GetModule("UIAutomationCore.dll") which generates comtypes.gen.
+import comtypes.gen.UIAutomationClient as UIAC  # noqa: N817
 import win32gui
 
+from ._automation import (
+    TunestAutomationError,
+    _send_click,
+    element_from_hwnd,
+    get_rect,
+    get_toggle_state,
+    get_uia,
+    get_value,
+    invoke_element,
+    set_combobox,
+    set_file_dialog_path,
+    set_toggle,
+    set_value,
+)
+from ._automation import centre as _ctr
+from ._automation import element_from_hwnd as _efh
+from ._automation import get_rect as _gr
 from ._constants import (
     BYPASS_EQ_BTN_REL,
     CH_HEADER_OFFSET,
@@ -33,24 +51,9 @@ from ._constants import (
     RESET_EQ_OK_BTN_REL,
     RESET_EQ_SELECTED_CB_REL,
 )
-from ._automation import (
-    TunestAutomationError,
-    _send_click,
-    element_from_hwnd,
-    get_rect,
-    get_toggle_state,
-    get_value,
-    invoke_element,
-    set_combobox,
-    set_file_dialog_path,
-    set_toggle,
-    set_value,
-)
 from ._launcher import TunestConnectionError, launch_and_connect
 
-# UIAC is safe to import here: importing _automation above already triggered
-# comtypes.client.GetModule("UIAutomationCore.dll") which generates comtypes.gen.
-import comtypes.gen.UIAutomationClient as UIAC  # noqa: E402,N814
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -78,8 +81,7 @@ class FilterSlope(Enum):
 
 
 class TunestPC:
-    """
-    Programmatic controller for the Tunest PC (TUNEST_PC_V1) DSP application.
+    r"""Programmatic controller for the Tunest PC (TUNEST_PC_V1) DSP application.
 
     Typical usage::
 
@@ -90,7 +92,7 @@ class TunestPC:
     """
 
     def __init__(self) -> None:
-        self._hwnd: Optional[int] = None
+        self._hwnd: int | None = None
         self._bypass_active: bool = False
 
     # ------------------------------------------------------------------
@@ -99,12 +101,12 @@ class TunestPC:
 
     def _require_connected(self) -> int:
         if self._hwnd is None:
-            raise TunestConnectionError("Not connected. Call connect() first.")
+            msg = "Not connected. Call connect() first."
+            raise TunestConnectionError(msg)
         if not win32gui.IsWindow(self._hwnd):
             self._hwnd = None
-            raise TunestConnectionError(
-                "Tunest PC window is no longer valid. Reconnect."
-            )
+            msg = "Tunest PC window is no longer valid. Reconnect."
+            raise TunestConnectionError(msg)
         return self._hwnd
 
     def _win_rect(self) -> tuple[int, int, int, int]:
@@ -115,7 +117,7 @@ class TunestPC:
 
     def _abs(self, rel_x: int, rel_y: int) -> tuple[int, int]:
         """Convert window-relative position to absolute screen coords."""
-        l, t, _, _ = self._win_rect()
+        l, t, _, _ = self._win_rect()  # noqa: E741
         return l + rel_x, t + rel_y
 
     def _click_rel(self, rel_x: int, rel_y: int) -> None:
@@ -125,13 +127,12 @@ class TunestPC:
     def _all_descendants(
         self,
     ) -> list[tuple[int, int, int, int, int, UIAC.IUIAutomationElement]]:
-        """
-        Return a flat list of (area, left, top, right, bottom, elem) for every
-        non-zero-size descendant of the main window.  Re-queried fresh each call.
+        """Return a flat list of (area, left, top, right, bottom, elem) for every non-zero-size descendant of the main window.
+
+        Re-queried fresh each call.
         """
         hwnd = self._require_connected()
         root = element_from_hwnd(hwnd)
-        from ._automation import get_uia
 
         uia = get_uia()
         tc = uia.CreateTrueCondition()
@@ -145,20 +146,19 @@ class TunestPC:
                     continue
                 area = (r.right - r.left) * (r.bottom - r.top)
                 result.append((area, r.left, r.top, r.right, r.bottom, e))
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                msg = f"Error getting descendant element {i}: {exc}"
+                logger.fatal(msg)
         return result
 
     def _get_elem_at_rel(
         self,
         rel_x: int,
         rel_y: int,
-        name: Optional[str] = None,
+        name: str | None = None,
         max_wait: float = 3.0,
     ) -> UIAC.IUIAutomationElement:
-        """
-        Find the smallest UIA element whose bounding rect contains the
-        window-relative point (*rel_x*, *rel_y*).
+        """Find the smallest UIA element whose bounding rect contains the window-relative point (*rel_x*, *rel_y*).
 
         If *name* is provided, the element's CurrentName must match exactly.
         Polls up to *max_wait* seconds.  Raises TunestAutomationError on timeout.
@@ -167,7 +167,7 @@ class TunestPC:
         filter by control type.  Instead we find the leaf element by area - the
         smallest element that spatially contains the target point is the leaf.
         """
-        l, t, _, _ = self._win_rect()
+        l, t, _, _ = self._win_rect()  # noqa: E741
         sx = l + rel_x
         sy = t + rel_y
 
@@ -203,11 +203,10 @@ class TunestPC:
         self,
         exe_path: str,
         model: str = "M6",
-        launch_if_needed: bool = True,
+        launch_if_needed: bool = True,  # noqa: FBT001,FBT002
         timeout: float = 15.0,
     ) -> None:
-        """
-        Connect to a running Tunest PC instance, or launch it.
+        """Connect to a running Tunest PC instance, or launch it.
 
         Parameters
         ----------
@@ -219,6 +218,7 @@ class TunestPC:
             If True, start the application when it is not already running.
         timeout:
             Seconds to wait for the main window to appear.
+
         """
         self._hwnd = launch_and_connect(
             exe_path=exe_path,
@@ -232,21 +232,21 @@ class TunestPC:
     # Master volume
     # ------------------------------------------------------------------
 
-    def get_master_volume(self) -> str:
+    def get_master_volume(self) -> float:
         """Return the master volume value string, e.g. '0dB'."""
         elem = self._get_elem_at_rel(
             MASTER_VOL_EDIT_REL[0] + 32,
             MASTER_VOL_EDIT_REL[1] + 9,
         )
-        return get_value(elem)
+        return float(get_value(elem).removesuffix("dB"))
 
-    def set_master_volume(self, value: str) -> None:
+    def set_master_volume(self, value: float) -> None:
         """Set master volume.  *value* e.g. '-6dB' or '0dB'."""
         elem = self._get_elem_at_rel(
             MASTER_VOL_EDIT_REL[0] + 32,
             MASTER_VOL_EDIT_REL[1] + 9,
         )
-        set_value(elem, value)
+        set_value(elem, str(value))
 
     # ------------------------------------------------------------------
     # Master mute
@@ -260,7 +260,7 @@ class TunestPC:
         )
         return get_toggle_state(elem) == 1
 
-    def set_master_mute(self, muted: bool) -> None:
+    def set_master_mute(self, muted: bool) -> None:  # noqa: FBT001
         """Enable or disable master mute."""
         elem = self._get_elem_at_rel(
             MASTER_MUTE_REL[0] + 32,
@@ -275,36 +275,37 @@ class TunestPC:
     @staticmethod
     def _ch_x(channel: int) -> int:
         """Return window-relative X of the left edge of a channel group (1-indexed)."""
-        if not (1 <= channel <= 8):
-            raise ValueError(f"Channel must be 1–8, got {channel}")
+        if not (1 <= channel <= 8):  # noqa: PLR2004
+            msg = f"Channel must be 1-8, got {channel}"
+            raise ValueError(msg)
         return CHANNEL_X_OFFSETS[channel - 1]
 
-    def get_channel_level(self, channel: int) -> str:
-        """Return the level string for *channel* (1–8), e.g. '0.0dB'."""
+    def get_channel_level(self, channel: int) -> float:
+        """Return the level string for *channel* (1-8), e.g. '0.0dB'."""
         cx = self._ch_x(channel)
         rel_x = cx + CH_LEVEL_EDIT_OFFSET[0] + 38  # centre of the 77px-wide field
         rel_y = CHANNEL_STRIP_TOP_Y + CH_LEVEL_EDIT_OFFSET[1] + 12
         elem = self._get_elem_at_rel(rel_x, rel_y)
-        return get_value(elem)
+        return float(get_value(elem).removesuffix("dB"))
 
-    def set_channel_level(self, channel: int, value: str) -> None:
-        """Set *channel* (1–8) level.  *value* e.g. '-3.0dB'."""
+    def set_channel_level(self, channel: int, value: float) -> None:
+        """Set *channel* (1-8) level.  *value* e.g. '-3.0dB'."""
         cx = self._ch_x(channel)
         rel_x = cx + CH_LEVEL_EDIT_OFFSET[0] + 38
         rel_y = CHANNEL_STRIP_TOP_Y + CH_LEVEL_EDIT_OFFSET[1] + 12
         elem = self._get_elem_at_rel(rel_x, rel_y)
-        set_value(elem, value)
+        set_value(elem, str(value))
 
     def get_channel_mute(self, channel: int) -> bool:
-        """Return True if *channel* (1–8) is muted."""
+        """Return True if *channel* (1-8) is muted."""
         cx = self._ch_x(channel)
         rel_x = cx + CH_MUTE_CB_OFFSET[0] + 14  # centre of 28px-wide button
         rel_y = CHANNEL_STRIP_TOP_Y + CH_MUTE_CB_OFFSET[1] + 11
         elem = self._get_elem_at_rel(rel_x, rel_y)
         return get_toggle_state(elem) == 1
 
-    def set_channel_mute(self, channel: int, muted: bool) -> None:
-        """Enable or disable mute on *channel* (1–8)."""
+    def set_channel_mute(self, channel: int, muted: bool) -> None:  # noqa: FBT001
+        """Enable or disable mute on *channel* (1-8)."""
         cx = self._ch_x(channel)
         rel_x = cx + CH_MUTE_CB_OFFSET[0] + 14
         rel_y = CHANNEL_STRIP_TOP_Y + CH_MUTE_CB_OFFSET[1] + 11
@@ -312,15 +313,15 @@ class TunestPC:
         set_toggle(elem, muted)
 
     def get_channel_solo(self, channel: int) -> bool:
-        """Return True if *channel* (1–8) is soloed."""
+        """Return True if *channel* (1-8) is soloed."""
         cx = self._ch_x(channel)
         rel_x = cx + CH_SOLO_CB_OFFSET[0] + 23  # centre of 47px-wide button
         rel_y = CHANNEL_STRIP_TOP_Y + CH_SOLO_CB_OFFSET[1] + 12
         elem = self._get_elem_at_rel(rel_x, rel_y)
         return get_toggle_state(elem) == 1
 
-    def set_channel_solo(self, channel: int, soloed: bool) -> None:
-        """Enable or disable solo on *channel* (1–8)."""
+    def set_channel_solo(self, channel: int, soloed: bool) -> None:  # noqa: FBT001
+        """Enable or disable solo on *channel* (1-8)."""
         cx = self._ch_x(channel)
         rel_x = cx + CH_SOLO_CB_OFFSET[0] + 23
         rel_y = CHANNEL_STRIP_TOP_Y + CH_SOLO_CB_OFFSET[1] + 12
@@ -332,15 +333,17 @@ class TunestPC:
     # ------------------------------------------------------------------
 
     def _select_channel(self, channel: int) -> None:
-        """
-        Select *channel* (1–8) by clicking its header in the bottom channel
+        """Select *channel* (1-8).
+
+        Select *channel* (1-8) by clicking its header in the bottom channel
         strip (the 160x28 bar at the top of each channel column, Y≈511).
         Clicking the header highlights the section with a coloured border and
         updates the right-panel filter/EQ controls to show that channel.
         Always sends a direct click regardless of current state.
         """
-        if not (1 <= channel <= 8):
-            raise ValueError(f"Channel must be 1–8, got {channel}")
+        if not (1 <= channel <= 8):  # noqa: PLR2004
+            msg = f"Channel must be 1-8, got {channel}"
+            raise ValueError(msg)
         cx = self._ch_x(channel)
         rel_x = cx + CH_HEADER_OFFSET[0]  # centre of 160px-wide header = x+80
         rel_y = CHANNEL_STRIP_TOP_Y + CH_HEADER_OFFSET[1]  # 511+14 = 525
@@ -358,15 +361,19 @@ class TunestPC:
         freq: str,
         slope: FilterSlope,
     ) -> None:
-        """
-        Configure the high-pass filter for *channel* (1–8).
+        """Configure the high-pass filter for *channel* (1-8).
 
         Parameters
         ----------
-        channel:    Target channel (1–8).
-        filter_type: FilterType enum value.
-        freq:       Frequency string, e.g. '80'.
-        slope:      FilterSlope enum value.
+        channel:
+            Target channel (1-8).
+        filter_type:
+            FilterType enum value.
+        freq:
+            Frequency string, e.g. '80'.
+        slope:
+            FilterSlope enum value.
+
         """
         self._select_channel(channel)
         time.sleep(0.1)
@@ -399,15 +406,19 @@ class TunestPC:
         freq: str,
         slope: FilterSlope,
     ) -> None:
-        """
-        Configure the low-pass filter for *channel* (1–8).
+        """Configure the low-pass filter for *channel* (1-8).
 
         Parameters
         ----------
-        channel:    Target channel (1–8).
-        filter_type: FilterType enum value.
-        freq:       Frequency string, e.g. '4000'.
-        slope:      FilterSlope enum value.
+        channel:
+            Target channel (1-8).
+        filter_type:
+            FilterType enum value.
+        freq:
+            Frequency string, e.g. '4000'.
+        slope:
+            FilterSlope enum value.
+
         """
         self._select_channel(channel)
         time.sleep(0.1)
@@ -435,8 +446,7 @@ class TunestPC:
     # ------------------------------------------------------------------
 
     def import_eq(self, channel: int, json_path: str) -> None:
-        """
-        Import an EQ preset JSON file for *channel* (1–8).
+        """Import an EQ preset JSON file for *channel* (1-8).
 
         Selects the channel, clicks "Import EQ", then automates the Windows
         file-open dialog to select *json_path*.
@@ -459,15 +469,15 @@ class TunestPC:
     # Reset EQ
     # ------------------------------------------------------------------
 
-    def reset_eq(self, selected_only: bool = True) -> None:
-        """
-        Open the Reset EQ dialog and reset EQ bands.
+    def reset_eq(self, selected_only: bool = True) -> None:  # noqa: FBT001,FBT002
+        """Open the Reset EQ dialog and reset EQ bands.
 
         Parameters
         ----------
         selected_only:
             If True (default), choose "Reset selected channels".
             If False, choose "Reset all channels".
+
         """
         # Use direct click - InvokePattern.Invoke() crashes for Qt buttons.
         self._click_rel(RESET_EQ_BTN_REL[0] + 35, RESET_EQ_BTN_REL[1] + 11)
@@ -492,9 +502,8 @@ class TunestPC:
                 break
             time.sleep(0.1)
         if not dialog_hwnd:
-            raise TunestAutomationError("Reset EQ dialog did not appear")
-
-        from ._automation import element_from_hwnd as _efh, get_uia, get_rect as _gr
+            msg = "Reset EQ dialog did not appear"
+            raise TunestAutomationError(msg)
 
         dialog_elem = _efh(dialog_hwnd)
         time.sleep(0.15)
@@ -505,7 +514,7 @@ class TunestPC:
         nm_cond = uia.CreatePropertyCondition(UIAC.UIA_NamePropertyId, cb_name)
         cb_elem = dialog_elem.FindFirst(UIAC.TreeScope_Descendants, nm_cond)
         if cb_elem is not None:
-            set_toggle(cb_elem, True)
+            set_toggle(cb_elem, desired=True)
         else:
             # Fallback: click by position
             dl, dt, _, _ = _gr(dialog_elem)
@@ -516,8 +525,6 @@ class TunestPC:
         ok_cond = uia.CreatePropertyCondition(UIAC.UIA_NamePropertyId, "Ok")
         ok_elem = dialog_elem.FindFirst(UIAC.TreeScope_Descendants, ok_cond)
         if ok_elem is not None:
-            from ._automation import centre as _ctr
-
             _send_click(*_ctr(ok_elem))
         else:
             dl, dt, _, _ = _gr(dialog_elem)
@@ -530,8 +537,8 @@ class TunestPC:
     # ------------------------------------------------------------------
 
     def bypass_eq(self) -> None:
-        """
-        Bypass EQ on all channels (click the Bypass EQ toggle button).
+        """Bypass EQ on all channels (click the Bypass EQ toggle button).
+
         No-op if bypass is already active (tracked internally).
         """
         if self._bypass_active:
@@ -542,8 +549,8 @@ class TunestPC:
         self._bypass_active = True
 
     def restore_eq(self) -> None:
-        """
-        Remove EQ bypass (click RestoreEQ toggle to restore).
+        """Remove EQ bypass (click RestoreEQ toggle to restore).
+
         No-op if bypass is not active.
         """
         if not self._bypass_active:

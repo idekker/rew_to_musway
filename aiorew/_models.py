@@ -1,5 +1,4 @@
-"""
-_models.py - typed dataclasses for all REW API request/response shapes.
+"""_models.py - typed dataclasses for all REW API request/response shapes.
 
 Naming follows the REW API documentation. All fields that are absent on some
 measurement types (e.g. RTA vs sweep) are typed as Optional.
@@ -9,16 +8,17 @@ big-endian 32-bit float format into numpy ndarrays by the client methods;
 the models themselves store the final numpy arrays.
 """
 
+# ruff: noqa: N815
+
 from __future__ import annotations
 
 import base64
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 import numpy as np
-
 
 # ---------------------------------------------------------------------------
 # Array codec (Base64 big-endian float32 <-> numpy)
@@ -43,8 +43,7 @@ def encode_float_array(arr: np.ndarray) -> str:
 
 @dataclass
 class MeasurementSummary:
-    """
-    Summary metadata for a single REW measurement.
+    """Summary metadata for a single REW measurement.
 
     *uuid* is the stable identifier - use it for all sub-resource calls.
     Group fields and IR timing fields are absent on some measurement types
@@ -62,16 +61,16 @@ class MeasurementSummary:
     splOffsetdB: float
     alignSPLOffsetdB: float
     notes: str = ""
-    groupName: Optional[str] = None
-    groupNotes: Optional[str] = None
-    groupID: Optional[str] = None
-    cumulativeIRShiftSeconds: Optional[float] = None
-    clockAdjustmentPPM: Optional[float] = None
-    timeOfIRStartSeconds: Optional[float] = None
-    timeOfIRPeakSeconds: Optional[float] = None
+    groupName: str | None = None
+    groupNotes: str | None = None
+    groupID: str | None = None
+    cumulativeIRShiftSeconds: float | None = None
+    clockAdjustmentPPM: float | None = None
+    timeOfIRStartSeconds: float | None = None
+    timeOfIRPeakSeconds: float | None = None
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "MeasurementSummary":
+    def from_dict(cls, d: dict[str, Any]) -> MeasurementSummary:
         return cls(
             title=d["title"],
             uuid=UUID(d["uuid"]),
@@ -96,8 +95,7 @@ class MeasurementSummary:
 
 @dataclass
 class FrequencyResponse:
-    """
-    Frequency response data from the REW API.
+    """Frequency response data from the REW API.
 
     Spacing is either log (ppo is set, freqStep is None) or linear
     (freqStep is set, ppo is None).  phase is absent for RTA-derived
@@ -113,12 +111,12 @@ class FrequencyResponse:
     smoothing: Smoothing
     startFreq: float
     magnitude: np.ndarray
-    ppo: Optional[int] = None  # log-spaced
-    freqStep: Optional[float] = None  # linear-spaced
-    phase: Optional[np.ndarray] = None
+    ppo: int | None = None  # log-spaced
+    freqStep: float | None = None  # linear-spaced
+    phase: np.ndarray | None = None
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "FrequencyResponse":
+    def from_dict(cls, d: dict[str, Any]) -> FrequencyResponse:
         return cls(
             unit=d["unit"],
             smoothing=Smoothing(d["smoothing"]),
@@ -146,8 +144,7 @@ class Smoothing(Enum):
 
 @dataclass
 class ImpulseResponse:
-    """
-    Impulse response data from the REW API.
+    """Impulse response data from the REW API.
 
     Not available for RTA-derived measurements - the API returns 400 for those.
     """
@@ -160,7 +157,7 @@ class ImpulseResponse:
     data: np.ndarray
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "ImpulseResponse":
+    def from_dict(cls, d: dict[str, Any]) -> ImpulseResponse:
         return cls(
             unit=d["unit"],
             startTime=d["startTime"],
@@ -173,8 +170,7 @@ class ImpulseResponse:
 
 @dataclass
 class IRWindows:
-    """
-    Impulse response window settings for a measurement.
+    """Impulse response window settings for a measurement.
 
     Not available for RTA-derived measurements.
     """
@@ -186,10 +182,10 @@ class IRWindows:
     refTimems: float
     addFDW: bool
     addMTW: bool
-    fdwWidthCycles: Optional[float] = None
+    fdwWidthCycles: float | None = None
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "IRWindows":
+    def from_dict(cls, d: dict[str, Any]) -> IRWindows:
         return cls(
             leftWindowType=d["leftWindowType"],
             rightWindowType=d["rightWindowType"],
@@ -201,8 +197,8 @@ class IRWindows:
             fdwWidthCycles=d.get("fdwWidthCycles"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
-        d: Dict[str, Any] = {
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
             "leftWindowType": self.leftWindowType,
             "rightWindowType": self.rightWindowType,
             "leftWindowWidthms": self.leftWindowWidthms,
@@ -218,8 +214,7 @@ class IRWindows:
 
 @dataclass
 class FilterSetting:
-    """
-    A single EQ filter slot for a measurement.
+    """A single EQ filter slot for a measurement.
 
     frequency, gaindB, and q are absent when type is "None".
     """
@@ -228,12 +223,12 @@ class FilterSetting:
     type: str
     enabled: bool
     isAuto: bool
-    frequency: Optional[float] = None
-    gaindB: Optional[float] = None
-    q: Optional[float] = None
+    frequency: float | None = None
+    gaindB: float | None = None
+    q: float | None = None
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "FilterSetting":
+    def from_dict(cls, d: dict[str, Any]) -> FilterSetting:
         return cls(
             index=d["index"],
             type=d["type"],
@@ -244,8 +239,8 @@ class FilterSetting:
             q=d.get("q"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
-        d: Dict[str, Any] = {
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
             "index": self.index,
             "type": self.type,
             "enabled": self.enabled,
@@ -268,10 +263,10 @@ class Equaliser:
     model: str
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "Equaliser":
+    def from_dict(cls, d: dict[str, Any]) -> Equaliser:
         return cls(manufacturer=d["manufacturer"], model=d["model"])
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"manufacturer": self.manufacturer, "model": self.model}
 
 
@@ -298,7 +293,7 @@ class TargetSettings:
     highPassCutoffHz: float
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "TargetSettings":
+    def from_dict(cls, d: dict[str, Any]) -> TargetSettings:
         return cls(
             shape=TargetShape(d["shape"]),
             bassManagementSlopedBPerOctave=d["bassManagementSlopedBPerOctave"],
@@ -311,7 +306,7 @@ class TargetSettings:
             highPassCutoffHz=d["highPassCutoffHz"],
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "shape": self.shape.value,
             "bassManagementSlopedBPerOctave": self.bassManagementSlopedBPerOctave,
@@ -337,7 +332,7 @@ class RoomCurveSettings:
     highFreqFallSlopedBPerOctave: float
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "RoomCurveSettings":
+    def from_dict(cls, d: dict[str, Any]) -> RoomCurveSettings:
         return cls(
             addRoomCurve=d["addRoomCurve"],
             lowFreqRiseStartHz=d["lowFreqRiseStartHz"],
@@ -347,7 +342,7 @@ class RoomCurveSettings:
             highFreqFallSlopedBPerOctave=d["highFreqFallSlopedBPerOctave"],
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "addRoomCurve": self.addRoomCurve,
             "lowFreqRiseStartHz": self.lowFreqRiseStartHz,
@@ -362,13 +357,13 @@ class RoomCurveSettings:
 class ProcessResult:
     """Result from a long-running REW command."""
 
-    processName: Optional[int] = None
-    message: Optional[str] = None
+    processName: int | None = None
+    message: str | None = None
     # Additional key/value results from the command (e.g. waterfall, spectrogram data)
-    data: Dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "ProcessResult":
+    def from_dict(cls, d: dict[str, Any]) -> ProcessResult:
         known = {"processName", "message"}
         return cls(
             processName=d.get("processName"),
@@ -417,12 +412,12 @@ class ProcessMeasurements:
     """Measurements for a long-running REW command."""
 
     processName: ProcessCommand
-    measurementIndices: List[int]
-    measurementUUIDs: List[UUID]
-    parameters: Dict[str, Any]
-    resultUrl: Optional[str] = None
+    measurementIndices: list[int]
+    measurementUUIDs: list[UUID]
+    parameters: dict[str, Any]
+    resultUrl: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "processName": self.processName.value,
             "measurementIndices": self.measurementIndices,
@@ -442,17 +437,17 @@ class InputCalAllInputs:
     """Cal data shared across all inputs."""
 
     calFilePath: str = ""
-    dBFSAt94dBSPL: Optional[float] = None
+    dBFSAt94dBSPL: float | None = None
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "InputCalAllInputs":
+    def from_dict(cls, d: dict[str, Any]) -> InputCalAllInputs:
         return cls(
             calFilePath=d.get("calFilePath", ""),
             dBFSAt94dBSPL=d.get("dBFSAt94dBSPL"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
-        d: Dict[str, Any] = {"calFilePath": self.calFilePath}
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {"calFilePath": self.calFilePath}
         if self.dBFSAt94dBSPL is not None:
             d["dBFSAt94dBSPL"] = self.dBFSAt94dBSPL
         return d
@@ -460,8 +455,7 @@ class InputCalAllInputs:
 
 @dataclass
 class InputCalConfig:
-    """
-    Input calibration configuration.
+    """Input calibration configuration.
 
     Actual shape returned by GET /audio/input-cal:
       {
@@ -478,7 +472,7 @@ class InputCalConfig:
     calDataAllInputs: InputCalAllInputs = field(default_factory=InputCalAllInputs)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "InputCalConfig":
+    def from_dict(cls, d: dict[str, Any]) -> InputCalConfig:
         cal_raw = d.get("calDataAllInputs", {})
         return cls(
             currentInputSelection=d.get("currentInputSelection", ""),
@@ -489,7 +483,7 @@ class InputCalConfig:
             ),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "currentInputSelection": self.currentInputSelection,
             "separateCalFileForEachInput": self.separateCalFileForEachInput,
@@ -506,10 +500,10 @@ class OutputCalSampleRate:
     unit: str = "Hz"
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "OutputCalSampleRate":
+    def from_dict(cls, d: dict[str, Any]) -> OutputCalSampleRate:
         return cls(value=d.get("value", 0.0), unit=d.get("unit", "Hz"))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"value": self.value, "unit": self.unit}
 
 
@@ -521,7 +515,7 @@ class OutputCalData:
     sampleRate: OutputCalSampleRate = field(default_factory=OutputCalSampleRate)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "OutputCalData":
+    def from_dict(cls, d: dict[str, Any]) -> OutputCalData:
         sr_raw = d.get("sampleRate", {})
         return cls(
             calFilePath=d.get("calFilePath", ""),
@@ -530,7 +524,7 @@ class OutputCalData:
             ),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "calFilePath": self.calFilePath,
             "sampleRate": self.sampleRate.to_dict(),
@@ -539,8 +533,7 @@ class OutputCalData:
 
 @dataclass
 class OutputCalConfig:
-    """
-    Output calibration configuration.
+    """Output calibration configuration.
 
     Actual shape returned by GET /audio/output-cal:
       {
@@ -553,7 +546,7 @@ class OutputCalConfig:
     calData: OutputCalData = field(default_factory=OutputCalData)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "OutputCalConfig":
+    def from_dict(cls, d: dict[str, Any]) -> OutputCalConfig:
         cal_raw = d.get("calData", {})
         return cls(
             currentOutputSelection=d.get("currentOutputSelection", ""),
@@ -562,7 +555,7 @@ class OutputCalConfig:
             ),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "currentOutputSelection": self.currentOutputSelection,
             "calData": self.calData.to_dict(),
@@ -576,7 +569,7 @@ class OutputCalConfig:
 
 class InputLevelsUnit(Enum):
     SPL = "SPL"
-    DBFS = "DBFS"
+    DBFS = "dBFS"
     DBU = "dBu"
     DBV = "dBV"
     DBW = "dBW"
@@ -586,19 +579,18 @@ class InputLevelsUnit(Enum):
 
 @dataclass
 class InputLevels:
-    """
-    Last input levels snapshot from the REW input-levels monitor.
+    """Last input levels snapshot from the REW input-levels monitor.
 
     rms and peak are lists of per-channel values.
     """
 
     unit: InputLevelsUnit
-    rms: List[float]
-    peak: List[float]
+    rms: list[float]
+    peak: list[float]
     timeSpanSeconds: float
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "InputLevels":
+    def from_dict(cls, d: dict[str, Any]) -> InputLevels:
         return cls(
             unit=InputLevelsUnit(d["unit"]),
             rms=list(d["rms"]),
@@ -646,12 +638,12 @@ class GeneratorStatus:
 
     enabled: bool
     playing: bool
-    signal: Optional[GeneratorSignal] = None
-    level: Optional[float] = None
-    levelUnit: Optional[GeneratorLevelUnit] = None
+    signal: GeneratorSignal | None = None
+    level: float | None = None
+    levelUnit: GeneratorLevelUnit | None = None
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "GeneratorStatus":
+    def from_dict(cls, d: dict[str, Any]) -> GeneratorStatus:
         return cls(
             enabled=d.get("enabled", False),
             playing=d.get("playing", False),
@@ -697,7 +689,7 @@ class SPLMeterConfiguration:
     rollingLeqMinutes: int = 15
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "SPLMeterConfiguration":
+    def from_dict(cls, d: dict[str, Any]) -> SPLMeterConfiguration:
         return cls(
             mode=SPLMode(d.get("mode")),
             weighting=SPLWeighing(d.get("weighting")),
@@ -707,7 +699,7 @@ class SPLMeterConfiguration:
             rollingLeqMinutes=d.get("rollingLeqMinutes", 15),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "mode": self.mode.value,
             "weighting": self.weighting.value,
@@ -735,7 +727,7 @@ class SPLValues:
     elapsedTime: float
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "SPLValues":
+    def from_dict(cls, d: dict[str, Any]) -> SPLValues:
         return cls(
             meterNumber=d["meterNumber"],
             weighting=SPLWeighing(d["weighting"]),
@@ -758,8 +750,7 @@ class SPLValues:
 
 @dataclass
 class RTAConfiguration:
-    """
-    RTA configuration.
+    """RTA configuration.
 
     All fields use the actual names/types returned by GET /rta/config.
     Only the fields being set need to be populated when sending to the API
@@ -770,23 +761,23 @@ class RTAConfiguration:
     stopAtValue is a string.
     """
 
-    mode: Optional[str] = None
-    smoothing: Optional[Smoothing] = None
-    fftLength: Optional[str] = None  # e.g. "64k"
-    window: Optional[str] = None
-    averaging: Optional[str] = None
-    stopAt: Optional[bool] = None  # True = stop at stopAtValue averages
-    stopAtValue: Optional[int] = None  # number of averages before auto-stop
-    maximumOverlap: Optional[str] = None
-    calcDistortionEnabled: Optional[bool] = None
-    restartCaptureOnGeneratorChange: Optional[bool] = None
-    stopGeneratorWithRTA: Optional[bool] = None
-    use64BitFFT: Optional[bool] = None
-    adjustRTALevels: Optional[bool] = None
-    fundamentalFromSineGen: Optional[bool] = None
+    mode: str | None = None
+    smoothing: Smoothing | None = None
+    fftLength: str | None = None  # e.g. "64k"
+    window: str | None = None
+    averaging: str | None = None
+    stopAt: bool | None = None  # True = stop at stopAtValue averages
+    stopAtValue: int | None = None  # number of averages before auto-stop
+    maximumOverlap: str | None = None
+    calcDistortionEnabled: bool | None = None
+    restartCaptureOnGeneratorChange: bool | None = None
+    stopGeneratorWithRTA: bool | None = None
+    use64BitFFT: bool | None = None
+    adjustRTALevels: bool | None = None
+    fundamentalFromSineGen: bool | None = None
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "RTAConfiguration":
+    def from_dict(cls, d: dict[str, Any]) -> RTAConfiguration:
         return cls(
             mode=d.get("mode"),
             smoothing=Smoothing(d.get("smoothing")) if "smoothing" in d else None,
@@ -804,7 +795,7 @@ class RTAConfiguration:
             fundamentalFromSineGen=d.get("fundamentalFromSineGen"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             k: v
             for k, v in {
@@ -835,7 +826,7 @@ class RTAStatus:
     running: bool
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "RTAStatus":
+    def from_dict(cls, d: dict[str, Any]) -> RTAStatus:
         return cls(
             enabled=d.get("enabled", False),
             running=d.get("running", False),
@@ -849,29 +840,28 @@ class RTAStatus:
 
 @dataclass
 class MatchTargetSettings:
-    """
-    Settings that control how REW matches an EQ response to its target.
+    """Settings that control how REW matches an EQ response to its target.
 
     Actual fields from GET /eq/match-target-settings.
     Only populated fields are sent when doing PUT/POST.
     """
 
-    startFrequency: Optional[float] = None
-    endFrequency: Optional[float] = None
-    individualMaxBoostdB: Optional[float] = None
-    overallMaxBoostdB: Optional[float] = None
-    flatnessTargetdB: Optional[float] = None
-    allowNarrowFiltersBelow200Hz: Optional[bool] = None
-    varyQAbove200Hz: Optional[bool] = None
-    allowLowShelf: Optional[bool] = None
-    lowShelfMin: Optional[float] = None
-    lowShelfMax: Optional[float] = None
-    allowHighShelf: Optional[bool] = None
-    highShelfMin: Optional[float] = None
-    highShelfMax: Optional[float] = None
+    startFrequency: float | None = None
+    endFrequency: float | None = None
+    individualMaxBoostdB: float | None = None
+    overallMaxBoostdB: float | None = None
+    flatnessTargetdB: float | None = None
+    allowNarrowFiltersBelow200Hz: bool | None = None
+    varyQAbove200Hz: bool | None = None
+    allowLowShelf: bool | None = None
+    lowShelfMin: float | None = None
+    lowShelfMax: float | None = None
+    allowHighShelf: bool | None = None
+    highShelfMin: float | None = None
+    highShelfMax: float | None = None
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "MatchTargetSettings":
+    def from_dict(cls, d: dict[str, Any]) -> MatchTargetSettings:
         return cls(
             startFrequency=d.get("startFrequency"),
             endFrequency=d.get("endFrequency"),
@@ -888,7 +878,7 @@ class MatchTargetSettings:
             highShelfMax=d.get("highShelfMax"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             k: v
             for k, v in {

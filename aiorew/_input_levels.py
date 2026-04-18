@@ -1,18 +1,20 @@
-"""
-_input_levels.py - InputLevelsClient for REW input level monitoring.
+"""_input_levels.py - InputLevelsClient for REW input level monitoring.
 
 Covers /input-levels/* endpoints.
 """
 
 from __future__ import annotations
 
-from ._http import _HTTPClient
+from typing import TYPE_CHECKING
+
 from ._models import InputLevels
+
+if TYPE_CHECKING:
+    from ._http import _HTTPClient
 
 
 class InputLevelsClient:
-    """
-    Start/stop REW input level monitoring and read the latest levels.
+    """Start/stop REW input level monitoring and read the latest levels.
 
     Instantiated by REWClient - do not construct directly.
     """
@@ -29,8 +31,7 @@ class InputLevelsClient:
         await self._http.post("/input-levels/command", {"command": "Stop"})
 
     async def get_last_levels(self) -> InputLevels:
-        """
-        Return the most recent input levels snapshot.
+        """Return the most recent input levels snapshot.
 
         Monitoring must be active (call start_monitoring() first) for values
         to be meaningful.  Returns an InputLevels with rms and peak arrays

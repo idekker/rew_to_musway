@@ -1,5 +1,4 @@
-"""
-example_eq_filters.py - EQ filter workflow using aiorew.
+"""example_eq_filters.py - EQ filter workflow using aiorew.
 
 Workflow
 --------
@@ -23,25 +22,27 @@ Run with:
 from __future__ import annotations
 
 import asyncio
-import json
-import sys
 import io
+import json
+import logging
+import sys
 from pathlib import Path
 from uuid import UUID
 
-# Force UTF-8 output on cp1252 consoles (Windows), with line buffering so
-# print() output appears immediately rather than at process exit.
-sys.stdout = io.TextIOWrapper(
-    sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True
-)
-
 from aiorew import (
-    REWClient,
+    ArithmeticFunction,
     Equaliser,
+    FilterSetting,
     MatchTargetSettings,
+    REWClient,
     Smoothing,
     TargetShape,
-    ArithmeticFunction,
+)
+
+# Force UTF-8 output on cp1252 consoles (Windows), with line buffering so
+# logger.warning() output appears immediately rather than at process exit.
+sys.stdout = io.TextIOWrapper(
+    sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True
 )
 
 # ---------------------------------------------------------------------------
@@ -72,47 +73,50 @@ MATCH_FLATNESS = 1.0  # dB
 SHELF_MIN = -6.0  # dB
 SHELF_MAX = 6.0  # dB
 
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 
-async def main() -> None:
+async def main() -> None:  # noqa: PLR0915
     async with REWClient(host=REW_HOST, port=REW_PORT) as rew:
         # ------------------------------------------------------------------ #
         # 1. Delete all existing measurements
         # ------------------------------------------------------------------ #
-        print("Deleting all existing measurements...")
+        logger.warning("Deleting all existing measurements...")
         await rew.measurements.delete_all()
-        print("  Done.")
+        logger.warning("  Done.")
 
         # ------------------------------------------------------------------ #
         # 2. Load measurement file
         # ------------------------------------------------------------------ #
         mdat_path = str(MDAT_INPUT).replace("\\", "/")
-        print(f"Loading '{MDAT_INPUT.name}'...")
+        logger.warning("Loading '%s'...", MDAT_INPUT.name)
         await rew.measurements.load(mdat_path)
         # Give REW a moment to finish loading before listing
         await asyncio.sleep(1.0)
 
         measurements = await rew.measurements.list()
         if not measurements:
-            raise RuntimeError(
+            msg = (
                 f"No measurements found after loading '{mdat_path}'. "
                 "Check the file path and that REW has finished loading."
             )
+            raise RuntimeError(msg)
         m = measurements[0]
         uuid = m.uuid
-        print(f"  Loaded: '{m.title}'  UUID: {uuid}")
+        logger.warning("  Loaded: '%s'  UUID: %s", m.title, uuid)
 
-        print("Apply 1/6th smoothing...")
+        logger.warning("Apply 1/6th smoothing...")
         await rew.measurements.apply_smoothing(uuid, Smoothing.S6)
 
         # ------------------------------------------------------------------ #
         # 3. Set equaliser to Musway M DSP 31 Band
         # ------------------------------------------------------------------ #
-        print(f"Setting equaliser to {EQ_MANUFACTURER!r} / {EQ_MODEL!r}...")
+        logger.warning("Setting equaliser to %s / %s...", EQ_MANUFACTURER, EQ_MODEL)
         await rew.measurements.set_equaliser(
             uuid,
             Equaliser(
@@ -120,7 +124,7 @@ async def main() -> None:
                 model=EQ_MODEL,
             ),
         )
-        print("  Done.")
+        logger.warning("  Done.")
 
         # ------------------------------------------------------------------ #
         # 4. EQ target settings
@@ -130,32 +134,32 @@ async def main() -> None:
         # ------------------------------------------------------------------ #
 
         # 4a. Read current target settings so we only change the shape field
-        print("Reading current target settings...")
+        logger.warning("Reading current target settings...")
         target = await rew.measurements.get_target_settings(uuid)
-        print(f"  Current shape: {target.shape!r}")
+        logger.warning("  Current shape: %s", target.shape)
 
         if target.shape != TargetShape.FULL_RANGE:
-            print("Setting target shape to 'Full range'...")
+            logger.warning("Setting target shape to 'Full range'...")
             target.shape = TargetShape.FULL_RANGE
             await rew.measurements.set_target_settings(uuid, target)
-            print("  Done.")
+            logger.warning("  Done.")
 
         # 4b. Set the house curve file (global EQ default, applies to all measurements)
         house_curve_path = str(HOUSE_CURVE).replace("\\", "/")
-        print(f"Setting house curve to '{HOUSE_CURVE.name}'...")
+        logger.warning("Setting house curve to '%s'...", HOUSE_CURVE.name)
         await rew.eq.set_house_curve(house_curve_path, log_interpolation=True)
-        print("  Done.")
+        logger.warning("  Done.")
 
         # 4c. Calculate target level from the measurement response
-        print("Calculating target level from response...")
+        logger.warning("Calculating target level from response...")
         await rew.measurements.calculate_target_level(uuid)
         target_level = await rew.measurements.get_target_level(uuid)
-        print(f"  Target level: {target_level}")
+        logger.warning("  Target level: %.1f", target_level)
 
         # ------------------------------------------------------------------ #
         # 5. Set match-target settings
         # ------------------------------------------------------------------ #
-        print("Configuring match-target settings...")
+        logger.warning("Configuring match-target settings...")
         await rew.eq.set_match_target_settings(
             MatchTargetSettings(
                 startFrequency=MATCH_START_HZ,
@@ -173,18 +177,18 @@ async def main() -> None:
                 highShelfMax=SHELF_MAX,
             )
         )
-        print("  Done.")
+        logger.warning("  Done.")
 
         # ------------------------------------------------------------------ #
         # 6. Match response to target
         # ------------------------------------------------------------------ #
-        print("Matching response to target (this may take a moment)...")
+        logger.warning("Matching response to target (this may take a moment)...")
         await rew.measurements.match_target(uuid)
 
         # ------------------------------------------------------------------ #
         # 7. Save filter settings to test_files/<title>.txt
         # ------------------------------------------------------------------ #
-        print(f"Saving filters to '{FILTER_OUTPUT}'...")
+        logger.warning("Saving filters to '%s'...", FILTER_OUTPUT)
         # Read back filters for a quick report
         filters = await rew.measurements.get_filters(uuid)
         active_filters = [f for f in filters if f.type != "None"]
@@ -193,46 +197,55 @@ async def main() -> None:
         # ------------------------------------------------------------------ #
         # 8. Generate predicted measurement from EQ
         # ------------------------------------------------------------------ #
-        print("Generating predicted measurement...")
+        logger.warning("Generating predicted measurement...")
         results = await rew.measurements.generate_predicted_measurement(uuid)
-        print(f"  Result: {results}")
+        logger.warning("  Result: %r", results)
 
         results = await rew.measurements.arithmetic(
             [uuid, UUID(results["2"]["UUID"])], ArithmeticFunction.A_MIN_B
         )
-        print(f"  Result: {results}")
+        logger.warning("  Result: %r", results)
 
         # ------------------------------------------------------------------ #
         # 9. Save all measurements to test_files/after_eq.mdat
         # ------------------------------------------------------------------ #
         mdat_out_str = str(MDAT_OUTPUT).replace("\\", "/")
-        print(f"Saving all measurements to '{MDAT_OUTPUT.name}'...")
+        logger.warning("Saving all measurements to '%s'...", MDAT_OUTPUT.name)
         await rew.measurements.save_all(mdat_out_str)
-        print("  Done.")
+        logger.warning("  Done.")
 
         # ------------------------------------------------------------------ #
         # Summary
         # ------------------------------------------------------------------ #
 
-        print("\n" + "=" * 60)
-        print("EQ filter workflow complete.")
-        print(f"  Measurement:    {m.title}")
-        print(f"  UUID:           {uuid}")
-        print(f"  Equaliser:      {EQ_MANUFACTURER} / {EQ_MODEL}")
-        print(f"  House curve:    {HOUSE_CURVE.name}")
-        print(f"  Match range:    {MATCH_START_HZ:.0f} - {MATCH_END_HZ:.0f} Hz")
-        print(f"  Active filters: {len(active_filters)} / {len(filters)}")
-        print(f"  Filters saved:  {FILTER_OUTPUT.name}")
-        print(f"  Output .mdat:   {MDAT_OUTPUT.name}")
-        print("  Filters:")
+        logger.warning("\n" + "=" * 60)  # noqa: G003
+        logger.warning("EQ filter workflow complete.")
+        logger.warning("  Measurement:    %s", m.title)
+        logger.warning("  UUID:           %s", uuid)
+        logger.warning("  Equaliser:      %s / %s", EQ_MANUFACTURER, EQ_MODEL)
+        logger.warning("  House curve:    %s", HOUSE_CURVE.name)
+        logger.warning("  Match range:    %.0f - %.0f Hz", MATCH_START_HZ, MATCH_END_HZ)
+        logger.warning("  Active filters: %d / %d", len(active_filters), len(filters))
+        logger.warning("  Filters saved:  %s", FILTER_OUTPUT.name)
+        logger.warning("  Output .mdat:   %s", MDAT_OUTPUT.name)
+        logger.warning("  Filters:")
         for f in active_filters:
-            print(f"  [{f.index}]: {f.type}, {f.frequency}Hz, {f.gaindB}dB, {f.q}")
+            logger.warning(
+                "  [%d]: %s, %.1fHz, %.1fdB, %.2f",
+                f.index,
+                f.type,
+                f.frequency,
+                f.gaindB,
+                f.q,
+            )
 
-        print("=" * 60)
+        logger.warning("=" * 60)
 
 
-def _write_filter_json(path, filters, model, channel):
-    with open(path, "w") as file:
+def _write_filter_json(
+    path: Path, filters: list[FilterSetting], model: str, channel: str
+) -> None:
+    with path.open("w") as file:
         eqs = []
         for f in filters:
             eq = {
@@ -255,4 +268,5 @@ def _write_filter_json(path, filters, model, channel):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(format="%(message)s", level=logging.WARNING)
     asyncio.run(main())

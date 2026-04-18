@@ -1,20 +1,20 @@
-"""
-_generator.py - GeneratorClient for REW signal generator control.
+"""_generator.py - GeneratorClient for REW signal generator control.
 
 Covers /generator/* endpoints.
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
-from ._http import _HTTPClient
-from ._models import GeneratorStatus, GeneratorSignal
+from ._models import GeneratorSignal, GeneratorStatus
+
+if TYPE_CHECKING:
+    from ._http import _HTTPClient
 
 
 class GeneratorClient:
-    """
-    Control the REW signal generator: signal selection, level, and play/stop.
+    """Control the REW signal generator: signal selection, level, and play/stop.
 
     Instantiated by REWClient - do not construct directly.
     """
@@ -35,7 +35,7 @@ class GeneratorClient:
     # Signal selection
     # ------------------------------------------------------------------
 
-    async def get_signals(self) -> List[str]:
+    async def get_signals(self) -> list[str]:
         """Return the list of available signal names."""
         return await self._http.get("/generator/signals")
 
@@ -45,33 +45,29 @@ class GeneratorClient:
         return GeneratorSignal(d["signal"])
 
     async def set_signal(self, signal_name: GeneratorSignal) -> None:
-        """
-        Select a signal.
-        """
+        """Select a signal."""
         await self._http.post("/generator/signal", {"signal": signal_name.value})
 
     # ------------------------------------------------------------------
     # Signal configuration
     # ------------------------------------------------------------------
 
-    async def get_signal_configuration(self) -> Dict[str, Any]:
-        """
-        Return the configuration for the currently selected signal.
+    async def get_signal_configuration(self) -> dict[str, Any]:
+        """Return the configuration for the currently selected signal.
 
         The shape of the returned dict depends on the signal type.
         """
         return await self._http.get("/generator/signal/configuration")
 
-    async def set_signal_configuration(self, config: Dict[str, Any]) -> None:
-        """
-        Update the configuration for the currently selected signal.
+    async def set_signal_configuration(self, config: dict[str, Any]) -> None:
+        """Update the configuration for the currently selected signal.
 
         Pass only the fields you want to change - both POST and PUT accept
         partial objects.
         """
         await self._http.post("/generator/signal/configuration", config)
 
-    async def get_signal_commands(self) -> List[str]:
+    async def get_signal_commands(self) -> list[str]:
         """Return the commands available for the currently selected signal."""
         return await self._http.get("/generator/signal/commands")
 
@@ -92,8 +88,7 @@ class GeneratorClient:
         return float(d["value"])
 
     async def set_level(self, level: float, unit: str = "dBFS") -> None:
-        """
-        Set the generator output level.
+        """Set the generator output level.
 
         Parameters
         ----------
@@ -101,10 +96,11 @@ class GeneratorClient:
             Numeric level value.
         unit:
             Unit string (e.g. 'dBFS', 'dBV'). Defaults to 'dBFS'.
+
         """
         await self._http.post("/generator/level", {"value": level, "unit": unit})
 
-    async def get_level_units(self) -> List[str]:
+    async def get_level_units(self) -> list[str]:
         """Return the available unit strings for generator level."""
         return await self._http.get("/generator/level/units")
 
@@ -112,7 +108,7 @@ class GeneratorClient:
     # Frequency
     # ------------------------------------------------------------------
 
-    async def get_frequency(self) -> Optional[float]:
+    async def get_frequency(self) -> float | None:
         """Return the current generator frequency in Hz, or None for non-tone signals.
 
         API returns {"unit": "Hz"} with no "value" key when the current signal
@@ -141,6 +137,6 @@ class GeneratorClient:
         """Stop the generator."""
         await self._http.post("/generator/command", {"command": "Stop"})
 
-    async def get_commands(self) -> List[str]:
+    async def get_commands(self) -> list[str]:
         """Return the available generator start/stop command names."""
         return await self._http.get("/generator/commands")

@@ -1,5 +1,4 @@
-"""
-example_rta_measurement.py - RTA measurement workflow using aiorew.
+"""example_rta_measurement.py - RTA measurement workflow using aiorew.
 
 Workflow
 --------
@@ -23,18 +22,19 @@ Run with:
 from __future__ import annotations
 
 import asyncio
-import sys
+import datetime
 import io
-import os
-from datetime import datetime
+import logging
+import sys
+from pathlib import Path
+
+from aiorew import GeneratorSignal, InputLevels, REWClient, RTAConfiguration
 
 # Force UTF-8 output on cp1252 consoles (Windows), with line buffering so
-# print() output appears immediately rather than at process exit.
+# logger.warning() output appears immediately rather than at process exit.
 sys.stdout = io.TextIOWrapper(
     sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True
 )
-
-from aiorew import REWClient, RTAConfiguration, GeneratorSignal
 
 # ---------------------------------------------------------------------------
 # Configuration - adjust as needed
@@ -52,13 +52,15 @@ RTA_MAX_AVERAGES = 100
 GENERATOR_WARMUP = 3.0  # seconds to let the generator stabilise before reading levels
 SPL_WARMUP = 1.5  # pause after starting SPL meter before reading
 
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _fmt_levels(levels) -> str:
+def _fmt_levels(levels: InputLevels) -> str:
     rms_str = ", ".join(f"{v:.1f}" for v in levels.rms)
     peak_str = ", ".join(f"{v:.1f}" for v in levels.peak)
     return f"RMS=[{rms_str}] Peak=[{peak_str}] {levels.unit}"
@@ -69,45 +71,49 @@ def _fmt_levels(levels) -> str:
 # ---------------------------------------------------------------------------
 
 
-async def main() -> None:
+async def main() -> None:  # noqa: PLR0915
     async with REWClient(host=REW_HOST, port=REW_PORT) as rew:
         # ------------------------------------------------------------------ #
         # 1. Delete all existing measurements
         # ------------------------------------------------------------------ #
-        print("Deleting all existing measurements...")
+        logger.warning("Deleting all existing measurements...")
         await rew.measurements.delete_all()
-        print("  Done.")
+        logger.warning("  Done.")
 
         # ------------------------------------------------------------------ #
         # 2. Start input-levels monitor
         # ------------------------------------------------------------------ #
-        print("Starting input-levels monitor...")
+        logger.warning("Starting input-levels monitor...")
         await rew.input_levels.start_monitoring()
-        print("  Done.")
+        logger.warning("  Done.")
 
         # ------------------------------------------------------------------ #
         # 3. Configure and start the signal generator
         # ------------------------------------------------------------------ #
-        print(f"Setting signal to '{GENERATOR_SIGNAL}' at {GENERATOR_LEVEL} dBFS...")
+        logger.warning(
+            "Setting signal to '%s' at %.1f dBFS...", GENERATOR_SIGNAL, GENERATOR_LEVEL
+        )
         await rew.generator.set_signal(GENERATOR_SIGNAL)
         await rew.generator.set_level(GENERATOR_LEVEL)
         await rew.generator.play()
-        print(f"  Generator playing.")
+        logger.warning("  Generator playing.")
 
         # Wait for the generator output to stabilise before any level readings.
-        print(f"Waiting {GENERATOR_WARMUP:.0f}s for generator to stabilise...")
+        logger.warning("Waiting %.0fs for generator to stabilise...", GENERATOR_WARMUP)
         await asyncio.sleep(GENERATOR_WARMUP)
 
         # ------------------------------------------------------------------ #
         # 4. Snapshot pre-measurement input levels
         # ------------------------------------------------------------------ #
         pre_levels = await rew.input_levels.get_last_levels()
-        print(f"  Pre-measurement input levels: {_fmt_levels(pre_levels)}")
+        logger.warning("  Pre-measurement input levels: %s", _fmt_levels(pre_levels))
 
         # ------------------------------------------------------------------ #
         # 5. Configure RTA for 100 averages and start
         # ------------------------------------------------------------------ #
-        print(f"Configuring RTA: stopAt=True, stopAtValue={RTA_MAX_AVERAGES}...")
+        logger.warning(
+            "Configuring RTA: stopAt=True, stopAtValue=%d...", RTA_MAX_AVERAGES
+        )
         await rew.rta.set_configuration(
             RTAConfiguration(
                 stopAt=True,
@@ -116,39 +122,41 @@ async def main() -> None:
             )
         )
 
-        print("Starting RTA...")
+        logger.warning("Starting RTA...")
         await rew.rta.start()
-        print(f"  Waiting for {RTA_MAX_AVERAGES} averages to complete...")
+        logger.warning("  Waiting for %d averages to complete...", RTA_MAX_AVERAGES)
         await rew.rta.wait_until_stopped()
-        print("  RTA stopped.")
+        logger.warning("  RTA stopped.")
 
         # ------------------------------------------------------------------ #
         # 6. Save the RTA data as a new measurement and retrieve its UUID
         # ------------------------------------------------------------------ #
-        print("Saving RTA data as measurement...")
+        logger.warning("Saving RTA data as measurement...")
         uuid = await rew.save_rta()
-        print(f"  Saved - UUID: {uuid}")
+        logger.warning("  Saved - UUID: %s", uuid)
 
         # ------------------------------------------------------------------ #
         # 7. Rename measurement to current date/time
         # ------------------------------------------------------------------ #
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.datetime.now(tz=datetime.timezone.utc).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
         title = f"RTA {timestamp}"
-        print(f"Renaming measurement to '{title}'...")
+        logger.warning("Renaming measurement to '%s'...", title)
         await rew.measurements.set_title(uuid, title)
 
         # ------------------------------------------------------------------ #
         # 8. Add a note with output device and channel configuration
         # ------------------------------------------------------------------ #
-        print("Reading output device and channel configuration...")
+        logger.warning("Reading output device and channel configuration...")
         try:
             output_device = await rew.audio.get_java_output_device()
-        except Exception as exc:
+        except KeyError as exc:
             output_device = f"(unavailable: {exc})"
 
         try:
             output_channel = await rew.audio.get_java_output_channel()
-        except Exception as exc:
+        except KeyError as exc:
             output_channel = f"(unavailable: {exc})"
 
         note = (
@@ -159,15 +167,15 @@ async def main() -> None:
             f"RTA averages: {RTA_MAX_AVERAGES}\n"
             f"Pre-measurement input levels: {_fmt_levels(pre_levels)}"
         )
-        print("Setting measurement note...")
+        logger.warning("Setting measurement note...")
         await rew.measurements.set_notes(uuid, note)
-        print(f"  Note:\n{note}")
+        logger.warning("  Note:\n%s", note)
 
         # ------------------------------------------------------------------ #
         # 9. Post-measurement input level snapshot
         # ------------------------------------------------------------------ #
         post_levels = await rew.input_levels.get_last_levels()
-        print(f"Post-measurement input levels: {_fmt_levels(post_levels)}")
+        logger.warning("Post-measurement input levels: %s", _fmt_levels(post_levels))
 
         # Stop the input-levels monitor - we no longer need it.
         await rew.input_levels.stop_monitoring()
@@ -175,18 +183,19 @@ async def main() -> None:
         # ------------------------------------------------------------------ #
         # 10. SPL meter: open, start, read, close
         # ------------------------------------------------------------------ #
-        print("Opening SPL meter 1...")
+        logger.warning("Opening SPL meter 1...")
         await rew.spl_meter.open(meter_id=1)
         await rew.spl_meter.start(meter_id=1)
-        print(f"  Waiting {SPL_WARMUP:.1f}s for a stable SPL reading...")
+        logger.warning("  Waiting %.1fs for a stable SPL reading...", SPL_WARMUP)
         await asyncio.sleep(SPL_WARMUP)
 
         spl = await rew.spl_meter.get_levels(meter_id=1)
-        print(
-            f"  SPL meter reading: "
-            f"SPL={spl.spl:.1f} dB  "
-            f"Leq={spl.leq:.1f} dB  "
-            f"(weighting={spl.weighting}, filter={spl.filter})"
+        logger.warning(
+            "  SPL meter reading: SPL=%.1f dB  Leq=%.1f dB  (weighting=%s, filter=%s)",
+            spl.spl,
+            spl.leq,
+            spl.weighting,
+            spl.filter,
         )
 
         await rew.spl_meter.stop(meter_id=1)
@@ -195,35 +204,41 @@ async def main() -> None:
         # ------------------------------------------------------------------ #
         # 11. Stop the signal generator
         # ------------------------------------------------------------------ #
-        print("Stopping signal generator...")
+        logger.warning("Stopping signal generator...")
         await rew.generator.stop()
 
         # ------------------------------------------------------------------ #
         # 12. Save measurements
         # ------------------------------------------------------------------ #
-        print("Saving measurements...")
-        cwd = os.getcwd()
+        logger.warning("Saving measurements...")
+        cwd = Path.cwd()
         await rew.measurements.save_all(rf"{cwd}\test_files\rta.mdat", timestamp)
-        print("  Done.")
+        logger.warning("  Done.")
 
         # ------------------------------------------------------------------ #
         # Summary
         # ------------------------------------------------------------------ #
-        print("\n" + "=" * 60)
-        print("Measurement complete.")
-        print(f"  Title:          {title}")
-        print(f"  UUID:           {uuid}")
-        print(f"  Output device:  {output_device}")
-        print(f"  Output channel: {output_channel}")
-        print(f"  Signal:         {GENERATOR_SIGNAL} @ {GENERATOR_LEVEL} dBFS")
-        print(f"  RTA averages:   {RTA_MAX_AVERAGES}")
-        print(f"  Pre-levels:     {_fmt_levels(pre_levels)}")
-        print(f"  Post-levels:    {_fmt_levels(post_levels)}")
-        print(
-            f"  SPL:            {spl.spl:.1f} dB ({spl.weighting}-weighted, {spl.filter})"
+        logger.warning("\n" + "=" * 60)  # noqa: G003
+        logger.warning("Measurement complete.")
+        logger.warning("  Title:          %s", title)
+        logger.warning("  UUID:           %s", uuid)
+        logger.warning("  Output device:  %s", output_device)
+        logger.warning("  Output channel: %s", output_channel)
+        logger.warning(
+            "  Signal:         %s @ %.1f dBFS", GENERATOR_SIGNAL, GENERATOR_LEVEL
         )
-        print("=" * 60)
+        logger.warning("  RTA averages:   %d", RTA_MAX_AVERAGES)
+        logger.warning("  Pre-levels:     %s", _fmt_levels(pre_levels))
+        logger.warning("  Post-levels:    %s", _fmt_levels(post_levels))
+        logger.warning(
+            "  SPL:            %.1f dB (%s-weighted, %s)",
+            spl.spl,
+            spl.weighting,
+            spl.filter,
+        )
+        logger.warning("=" * 60)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(format="%(message)s", level=logging.WARNING)
     asyncio.run(main())
