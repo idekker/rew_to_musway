@@ -24,14 +24,13 @@ from __future__ import annotations
 import asyncio
 import datetime
 import io
-import logging
 import sys
 from pathlib import Path
 
 from aiorew import GeneratorSignal, InputLevels, REWClient, RTAConfiguration
 
 # Force UTF-8 output on cp1252 consoles (Windows), with line buffering so
-# logger.warning() output appears immediately rather than at process exit.
+# print() output appears immediately rather than at process exit.
 sys.stdout = io.TextIOWrapper(
     sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True
 )
@@ -51,8 +50,6 @@ GENERATOR_LEVEL = -12.0  # dBFS
 RTA_MAX_AVERAGES = 100
 GENERATOR_WARMUP = 3.0  # seconds to let the generator stabilise before reading levels
 SPL_WARMUP = 1.5  # pause after starting SPL meter before reading
-
-logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -76,44 +73,40 @@ async def main() -> None:  # noqa: PLR0915
         # ------------------------------------------------------------------ #
         # 1. Delete all existing measurements
         # ------------------------------------------------------------------ #
-        logger.warning("Deleting all existing measurements...")
+        print("Deleting all existing measurements...")
         await rew.measurements.delete_all()
-        logger.warning("  Done.")
+        print("  Done.")
 
         # ------------------------------------------------------------------ #
         # 2. Start input-levels monitor
         # ------------------------------------------------------------------ #
-        logger.warning("Starting input-levels monitor...")
+        print("Starting input-levels monitor...")
         await rew.input_levels.start_monitoring()
-        logger.warning("  Done.")
+        print("  Done.")
 
         # ------------------------------------------------------------------ #
         # 3. Configure and start the signal generator
         # ------------------------------------------------------------------ #
-        logger.warning(
-            "Setting signal to '%s' at %.1f dBFS...", GENERATOR_SIGNAL, GENERATOR_LEVEL
-        )
+        print(f"Setting signal to '{GENERATOR_SIGNAL}' at {GENERATOR_LEVEL} dBFS...")
         await rew.generator.set_signal(GENERATOR_SIGNAL)
         await rew.generator.set_level(GENERATOR_LEVEL)
         await rew.generator.play()
-        logger.warning("  Generator playing.")
+        print("  Generator playing.")
 
         # Wait for the generator output to stabilise before any level readings.
-        logger.warning("Waiting %.0fs for generator to stabilise...", GENERATOR_WARMUP)
+        print(f"Waiting {GENERATOR_WARMUP:.0f}s for generator to stabilise...")
         await asyncio.sleep(GENERATOR_WARMUP)
 
         # ------------------------------------------------------------------ #
         # 4. Snapshot pre-measurement input levels
         # ------------------------------------------------------------------ #
         pre_levels = await rew.input_levels.get_last_levels()
-        logger.warning("  Pre-measurement input levels: %s", _fmt_levels(pre_levels))
+        print(f"  Pre-measurement input levels: {_fmt_levels(pre_levels)}")
 
         # ------------------------------------------------------------------ #
         # 5. Configure RTA for 100 averages and start
         # ------------------------------------------------------------------ #
-        logger.warning(
-            "Configuring RTA: stopAt=True, stopAtValue=%d...", RTA_MAX_AVERAGES
-        )
+        print(f"Configuring RTA: stopAt=True, stopAtValue={RTA_MAX_AVERAGES}...")
         await rew.rta.set_configuration(
             RTAConfiguration(
                 stopAt=True,
@@ -122,18 +115,18 @@ async def main() -> None:  # noqa: PLR0915
             )
         )
 
-        logger.warning("Starting RTA...")
+        print("Starting RTA...")
         await rew.rta.start()
-        logger.warning("  Waiting for %d averages to complete...", RTA_MAX_AVERAGES)
+        print(f"  Waiting for {RTA_MAX_AVERAGES} averages to complete...")
         await rew.rta.wait_until_stopped()
-        logger.warning("  RTA stopped.")
+        print("  RTA stopped.")
 
         # ------------------------------------------------------------------ #
         # 6. Save the RTA data as a new measurement and retrieve its UUID
         # ------------------------------------------------------------------ #
-        logger.warning("Saving RTA data as measurement...")
+        print("Saving RTA data as measurement...")
         uuid = await rew.save_rta()
-        logger.warning("  Saved - UUID: %s", uuid)
+        print(f"  Saved - UUID: {uuid}")
 
         # ------------------------------------------------------------------ #
         # 7. Rename measurement to current date/time
@@ -142,13 +135,13 @@ async def main() -> None:  # noqa: PLR0915
             "%Y-%m-%d %H:%M:%S"
         )
         title = f"RTA {timestamp}"
-        logger.warning("Renaming measurement to '%s'...", title)
+        print(f"Renaming measurement to '{title}'...")
         await rew.measurements.set_title(uuid, title)
 
         # ------------------------------------------------------------------ #
         # 8. Add a note with output device and channel configuration
         # ------------------------------------------------------------------ #
-        logger.warning("Reading output device and channel configuration...")
+        print("Reading output device and channel configuration...")
         try:
             output_device = await rew.audio.get_java_output_device()
         except KeyError as exc:
@@ -167,15 +160,15 @@ async def main() -> None:  # noqa: PLR0915
             f"RTA averages: {RTA_MAX_AVERAGES}\n"
             f"Pre-measurement input levels: {_fmt_levels(pre_levels)}"
         )
-        logger.warning("Setting measurement note...")
+        print("Setting measurement note...")
         await rew.measurements.set_notes(uuid, note)
-        logger.warning("  Note:\n%s", note)
+        print(f"  Note:\n{note}")
 
         # ------------------------------------------------------------------ #
         # 9. Post-measurement input level snapshot
         # ------------------------------------------------------------------ #
         post_levels = await rew.input_levels.get_last_levels()
-        logger.warning("Post-measurement input levels: %s", _fmt_levels(post_levels))
+        print(f"Post-measurement input levels: {_fmt_levels(post_levels)}")
 
         # Stop the input-levels monitor - we no longer need it.
         await rew.input_levels.stop_monitoring()
@@ -183,19 +176,18 @@ async def main() -> None:  # noqa: PLR0915
         # ------------------------------------------------------------------ #
         # 10. SPL meter: open, start, read, close
         # ------------------------------------------------------------------ #
-        logger.warning("Opening SPL meter 1...")
+        print("Opening SPL meter 1...")
         await rew.spl_meter.open(meter_id=1)
         await rew.spl_meter.start(meter_id=1)
-        logger.warning("  Waiting %.1fs for a stable SPL reading...", SPL_WARMUP)
+        print(f"  Waiting {SPL_WARMUP:.1f}s for a stable SPL reading...")
         await asyncio.sleep(SPL_WARMUP)
 
         spl = await rew.spl_meter.get_levels(meter_id=1)
-        logger.warning(
-            "  SPL meter reading: SPL=%.1f dB  Leq=%.1f dB  (weighting=%s, filter=%s)",
-            spl.spl,
-            spl.leq,
-            spl.weighting,
-            spl.filter,
+        print(
+            f"  SPL meter reading: "
+            f"SPL={spl.spl:.1f} dB  "
+            f"Leq={spl.leq:.1f} dB  "
+            f"(weighting={spl.weighting}, filter={spl.filter})"
         )
 
         await rew.spl_meter.stop(meter_id=1)
@@ -204,41 +196,35 @@ async def main() -> None:  # noqa: PLR0915
         # ------------------------------------------------------------------ #
         # 11. Stop the signal generator
         # ------------------------------------------------------------------ #
-        logger.warning("Stopping signal generator...")
+        print("Stopping signal generator...")
         await rew.generator.stop()
 
         # ------------------------------------------------------------------ #
         # 12. Save measurements
         # ------------------------------------------------------------------ #
-        logger.warning("Saving measurements...")
+        print("Saving measurements...")
         cwd = Path.cwd()
         await rew.measurements.save_all(rf"{cwd}\test_files\rta.mdat", timestamp)
-        logger.warning("  Done.")
+        print("  Done.")
 
         # ------------------------------------------------------------------ #
         # Summary
         # ------------------------------------------------------------------ #
-        logger.warning("\n" + "=" * 60)  # noqa: G003
-        logger.warning("Measurement complete.")
-        logger.warning("  Title:          %s", title)
-        logger.warning("  UUID:           %s", uuid)
-        logger.warning("  Output device:  %s", output_device)
-        logger.warning("  Output channel: %s", output_channel)
-        logger.warning(
-            "  Signal:         %s @ %.1f dBFS", GENERATOR_SIGNAL, GENERATOR_LEVEL
+        print("\n" + "=" * 60)
+        print("Measurement complete.")
+        print(f"  Title:          {title}")
+        print(f"  UUID:           {uuid}")
+        print(f"  Output device:  {output_device}")
+        print(f"  Output channel: {output_channel}")
+        print(f"  Signal:         {GENERATOR_SIGNAL} @ {GENERATOR_LEVEL} dBFS")
+        print(f"  RTA averages:   {RTA_MAX_AVERAGES}")
+        print(f"  Pre-levels:     {_fmt_levels(pre_levels)}")
+        print(f"  Post-levels:    {_fmt_levels(post_levels)}")
+        print(
+            f"  SPL:            {spl.spl:.1f} dB ({spl.weighting}-weighted, {spl.filter})"
         )
-        logger.warning("  RTA averages:   %d", RTA_MAX_AVERAGES)
-        logger.warning("  Pre-levels:     %s", _fmt_levels(pre_levels))
-        logger.warning("  Post-levels:    %s", _fmt_levels(post_levels))
-        logger.warning(
-            "  SPL:            %.1f dB (%s-weighted, %s)",
-            spl.spl,
-            spl.weighting,
-            spl.filter,
-        )
-        logger.warning("=" * 60)
+        print("=" * 60)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(format="%(message)s", level=logging.WARNING)
     asyncio.run(main())
