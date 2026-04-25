@@ -1,0 +1,56 @@
+# REW to Musway - Quick calibration config
+
+rew:
+  host: localhost
+  port: 4735
+
+tunest_pc:
+  exe_path: "D:\\Program Files (x86)\\TUNEST PC\\TUNEST_PC_FULL.exe"
+  model: "M6"
+
+paths:
+  output_dir: "./output"
+  house_curve: "./test_files/house_curve.txt"
+
+playback:
+  mode: rew_generator                # manual | rew_generator
+  output_device: "EXCL: SPDIF Interface (SABRE 24/96 DAC_DigiT)"   # only used when mode=rew_generator
+  output_channel: "L+R"              # only used when mode=rew_generator
+  generator_signal: pink_periodic    # only used when mode=rew_generator
+  generator_level: -12.0             # dBFS, only used when mode=rew_generator
+
+measurement:
+  rta_averages: 10
+  smoothing: "1/6"
+
+eq:
+  manufacturer: "Musway"
+  model: "31 bands (Output)"
+  match_range_margin: 1              # octaves beyond filter cutoff
+  match_target:
+    individual_max_boost: 6.0        # dB
+    overall_max_boost: 6.0           # dB
+    flatness_target: 1.0             # dB
+    allow_narrow_filters_below_200hz: true
+    vary_q_above_200hz: true
+    allow_low_shelf: true
+    low_shelf_range: [ -6.0, 6.0 ]     # dB
+    allow_high_shelf: true
+    high_shelf_range: [ -6.0, 6.0 ]    # dB
+
+levels:
+  target_spl: 65.0                   # dB SPL
+  tolerance: 10.0                     # dB
+
+channels:
+  - number: 1
+    name: "LF"
+    group: front
+    highpass: null
+    lowpass: null
+
+  - number: 2
+    name: "RF"
+    group: front
+    highpass: null
+    lowpass: null

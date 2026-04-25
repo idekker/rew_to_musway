@@ -7,7 +7,7 @@ name = "rew_to_musway"
 version = "0.1.0"
 description = "Python automation library for in-car speaker calibration using REW and Tunest PC DSP application"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 keywords = ["tunest", "dsp", "audio", "rew", "automation", "ui-automation"]
 dependencies = [
@@ -16,16 +16,21 @@ dependencies = [
     "psutil>=7.2",
     "httpx>=0.27",
     "numpy>=1.24",
+    "pyyaml>=6.0",
+    "rich>=13.0",
+    "questionary>=2.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "ruff>=0.15",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["tunest_pc*", "aiorew*"]
+include = ["tunest_pc*", "aiorew*", "rew_to_musway*"]
 
 [tool.ruff]
 exclude = [".venv", ".idea", ".opencode", ".research", ".github"]
@@ -66,6 +71,10 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
 "example_*.py" = ["T201"]
+"tests/*" = [
+    "S101", # Asserts in tests is ok
+    "PLR2004", # Magic values in tests is ok(-ish)
+]
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.
@@ -93,3 +102,7 @@ docstring-code-format = false
 # This only has an effect when the `docstring-code-format` setting is
 # enabled.
 docstring-code-line-length = "dynamic"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
