@@ -115,7 +115,7 @@ async def main() -> None:  # noqa: PLR0915
                 stopAtValue=RTA_MAX_AVERAGES,
                 stopGeneratorWithRTA=False,  # we stop the generator ourselves below
                 window="Rectangular",
-                maximumOverlap="93.75%"
+                maximumOverlap="93.75%",
             )
         )
 

@@ -208,7 +208,7 @@ async def _run_eq_pipeline(
     """Apply smoothing, configure equaliser/target, and match."""
     await ctx.rew.apply_smoothing(uuid)
     await ctx.rew.configure_equaliser(uuid)
-    await ctx.rew.configure_target(uuid)
+    await ctx.rew.configure_target(uuid, target_offset=ch_cfg.target_offset)
 
     match_start, match_end = compute_match_range(
         ch_cfg, ctx.config.eq.match_range_margin

@@ -64,6 +64,7 @@ channels:
   - number: 3
     name: "C"
     group: centre
+    target_offset: -3.0              # dB offset applied to calculated EQ target level
     highpass:
       type: linkwitz_riley
       frequency: 300

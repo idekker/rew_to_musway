@@ -210,8 +210,23 @@ class REWController:
             Equaliser(manufacturer=eq_cfg.manufacturer, model=eq_cfg.model),
         )
 
-    async def configure_target(self, uuid: UUID) -> None:
-        """Set target shape to full range and configure house curve."""
+    async def configure_target(
+        self,
+        uuid: UUID,
+        *,
+        target_offset: float = 0.0,
+    ) -> None:
+        """Set target shape to full range and configure house curve.
+
+        Parameters
+        ----------
+        uuid:
+            Measurement UUID.
+        target_offset:
+            dB offset applied to the calculated target level.  Positive
+            values raise the target (more boost), negative values lower it.
+
+        """
         # Target shape
         target = await self.client.measurements.get_target_settings(uuid)
         if target.shape != TargetShape.FULL_RANGE:
@@ -230,7 +245,17 @@ class REWController:
         # Calculate target level from response
         await self.client.measurements.calculate_target_level(uuid)
         level = await self.client.measurements.get_target_level(uuid)
-        logger.info("Target level: %.1f dB", level)
+        logger.info("Calculated target level: %.1f dB", level)
+
+        # Apply offset
+        if target_offset != 0.0:
+            level += target_offset
+            await self.client.measurements.set_target_level(uuid, level)
+            logger.info(
+                "Target level after offset (%+.1f dB): %.1f dB",
+                target_offset,
+                level,
+            )
 
     async def configure_match_settings(
         self,

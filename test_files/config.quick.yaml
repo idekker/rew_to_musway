@@ -46,11 +46,13 @@ channels:
   - number: 1
     name: "LF"
     group: front
+    target_offset: -3.0
     highpass: null
     lowpass: null
 
   - number: 2
     name: "RF"
     group: front
+    target_offset: -3.0
     highpass: null
     lowpass: null

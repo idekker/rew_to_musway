@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from rew_to_musway.calibration._eq import calibrate_channels, select_channels
+from rew_to_musway.config import ChannelConfig
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -84,6 +85,9 @@ class TestCalibrateChannels:
         mock_rew.apply_smoothing.assert_called_once()
         mock_rew.configure_equaliser.assert_called_once()
         mock_rew.configure_target.assert_called_once()
+        # Verify target_offset from channel config is passed through
+        call_kwargs = mock_rew.configure_target.call_args
+        assert call_kwargs.kwargs.get("target_offset", 0.0) == 0.0
         mock_rew.configure_match_settings.assert_called_once()
         mock_rew.match_target.assert_called_once()
         mock_rew.generate_predicted.assert_called_once()
@@ -113,3 +117,37 @@ class TestCalibrateChannels:
         assert len(result) == num_channels
         assert mock_rew.run_rta.call_count == num_channels
         assert mock_amp.import_eq.call_count == num_channels
+
+    @pytest.mark.asyncio
+    async def test_target_offset_passed_to_configure_target(
+        self,
+        sample_config: Config,
+        mock_amp: AsyncMock,
+        mock_rew: AsyncMock,
+        mock_playback: AsyncMock,
+        tmp_path: Path,
+    ) -> None:
+        """Verify that a non-zero target_offset is forwarded to configure_target."""
+        offset_db = -3.0
+        ch = sample_config.channels[0]
+        modified = ChannelConfig(
+            number=ch.number,
+            name=ch.name,
+            group=ch.group,
+            highpass=ch.highpass,
+            lowpass=ch.lowpass,
+            target_offset=offset_db,
+        )
+
+        with patch("rew_to_musway.calibration._eq.asyncio.sleep"):
+            await calibrate_channels(
+                sample_config,
+                mock_amp,
+                mock_rew,
+                mock_playback,
+                tmp_path,
+                [modified],
+            )
+
+        call_kwargs = mock_rew.configure_target.call_args
+        assert call_kwargs.kwargs["target_offset"] == offset_db
