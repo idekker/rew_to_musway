@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ctypes
 import logging
 import time
 from enum import Enum
@@ -10,6 +11,9 @@ from enum import Enum
 # comtypes.client.GetModule("UIAutomationCore.dll") which generates comtypes.gen.
 import comtypes.gen.UIAutomationClient as UIAC  # noqa: N817
 import win32gui
+from comtypes._post_coinit.unknwn import (
+    _compointer_base,  # type: ignore[import-untyped]
+)
 
 from ._automation import (
     TunestAutomationError,
@@ -56,6 +60,28 @@ from ._launcher import TunestConnectionError, launch_and_connect
 logger = logging.getLogger(__name__)
 
 
+def _suppress_comtypes_release() -> None:
+    """Monkey-patch comtypes so COM pointers never call Release() in __del__.
+
+    comtypes Release() on stale IUIAutomationElement / pattern pointers
+    causes heap corruption (0xc0000374) and access violations that crash
+    the entire process.  Since tunest_pc is a short-lived automation
+    client, leaking COM reference counts is harmless — the OS reclaims
+    everything on process exit.
+    """
+
+    def _noop_del(self: object, _debug: object = None) -> None:
+        pass
+
+    try:
+        _compointer_base.__del__ = _noop_del  # type: ignore[assignment]
+    except Exception:  # noqa: BLE001
+        logger.warning("Failed to suppress comtypes Release() — COM crashes may occur")
+
+
+_suppress_comtypes_release()
+
+
 # ---------------------------------------------------------------------------
 # Public enums
 # ---------------------------------------------------------------------------
@@ -93,7 +119,6 @@ class TunestPC:
 
     def __init__(self) -> None:
         self._hwnd: int | None = None
-        self._bypass_active: bool = False
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -120,7 +145,14 @@ class TunestPC:
         l, t, _, _ = self._win_rect()  # noqa: E741
         return l + rel_x, t + rel_y
 
+    def _foreground(self) -> None:
+        """Bring the main window to the foreground before sending input."""
+        hwnd = self._require_connected()
+        ctypes.windll.user32.SetForegroundWindow(hwnd)
+        time.sleep(0.05)
+
     def _click_rel(self, rel_x: int, rel_y: int) -> None:
+        self._foreground()
         sx, sy = self._abs(rel_x, rel_y)
         _send_click(sx, sy)
 
@@ -226,7 +258,6 @@ class TunestPC:
             launch_if_needed=launch_if_needed,
             timeout=timeout,
         )
-        self._bypass_active = False
 
     # ------------------------------------------------------------------
     # Master volume
@@ -506,6 +537,7 @@ class TunestPC:
             raise TunestAutomationError(msg)
 
         dialog_elem = _efh(dialog_hwnd)
+        ctypes.windll.user32.SetForegroundWindow(dialog_hwnd)
         time.sleep(0.15)
 
         # Select the appropriate checkbox by name.
@@ -536,25 +568,34 @@ class TunestPC:
     # Bypass / Restore EQ
     # ------------------------------------------------------------------
 
-    def bypass_eq(self) -> None:
-        """Bypass EQ on all channels (click the Bypass EQ toggle button).
+    def get_eq_bypass(self) -> bool:
+        """Return True if EQ bypass is currently active.
 
-        No-op if bypass is already active (tracked internally).
+        Determined by reading the live button name: 'Bypass EQ' = inactive,
+        'RestoreEQ' = active.
         """
-        if self._bypass_active:
+        elem = self._get_elem_at_rel(
+            BYPASS_EQ_BTN_REL[0] + 35,
+            BYPASS_EQ_BTN_REL[1] + 11,
+        )
+        return (elem.CurrentName or "") == "RestoreEQ"
+
+    def bypass_eq(self) -> None:
+        """Bypass EQ on all channels.
+
+        No-op if bypass is already active (determined by reading button name).
+        """
+        if self.get_eq_bypass():
             return
-        # InvokePattern.Invoke() crashes for this button - use a direct mouse
-        # click on the button centre instead.
+        # InvokePattern.Invoke() crashes for this button - use direct mouse click.
         self._click_rel(BYPASS_EQ_BTN_REL[0] + 35, BYPASS_EQ_BTN_REL[1] + 11)
-        self._bypass_active = True
 
     def restore_eq(self) -> None:
-        """Remove EQ bypass (click RestoreEQ toggle to restore).
+        """Remove EQ bypass.
 
-        No-op if bypass is not active.
+        No-op if bypass is not active (determined by reading button name).
         """
-        if not self._bypass_active:
+        if not self.get_eq_bypass():
             return
         # Same: use direct mouse click, not InvokePattern.
         self._click_rel(BYPASS_EQ_BTN_REL[0] + 35, BYPASS_EQ_BTN_REL[1] + 11)
-        self._bypass_active = False

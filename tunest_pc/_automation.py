@@ -9,6 +9,7 @@ from __future__ import annotations
 import ctypes
 import ctypes.wintypes
 import logging
+import threading
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -40,20 +41,24 @@ class TunestAutomationError(Exception):
 
 
 # ---------------------------------------------------------------------------
-# UIA singleton
+# UIA per-thread instance
 # ---------------------------------------------------------------------------
-_uia: UIAC.IUIAutomation | None = None
+# COM objects are apartment-threaded — each thread needs its own CoInitialize
+# and its own IUIAutomation instance.  Using threading.local() ensures correct
+# behaviour when called from asyncio.to_thread() or any other thread pool.
+_tls = threading.local()
 
 
 def get_uia() -> UIAC.IUIAutomation | Any:
-    """Return (or create) the IUIAutomation COM object."""
-    global _uia  # noqa: PLW0603
-    if _uia is None:
-        _uia = comtypes.client.CreateObject(
+    """Return (or create) the per-thread IUIAutomation COM object."""
+    uia = getattr(_tls, "uia", None)
+    if uia is None:
+        comtypes.CoInitialize()
+        _tls.uia = comtypes.client.CreateObject(
             UIAC.CUIAutomation._reg_clsid_,
             interface=UIAC.IUIAutomation,
         )
-    return _uia
+    return _tls.uia
 
 
 # ---------------------------------------------------------------------------
@@ -443,10 +448,41 @@ def set_combobox(
     )
     if vp is not None:
         vp.SetValue(target_value)
-        return
+        time.sleep(COMBOBOX_EXPAND_SLEEP)
+        # Verify — Qt combos silently ignore SetValue; if unchanged, use click strategy.
+        if vp.CurrentValue == target_value:
+            return
 
-    msg = "ComboBox supports neither ExpandCollapsePattern nor ValuePattern"
-    raise TunestAutomationError(msg)
+    # Qt combo strategy: click to open dropdown, then click the named list item.
+    # The dropdown items appear as Text elements (ct=50007) in the root window tree.
+    click_element(combo_elem)
+    time.sleep(COMBOBOX_EXPAND_SLEEP)
+
+    uia = get_uia()
+    name_cond = uia.CreatePropertyCondition(UIAC.UIA_NamePropertyId, target_value)
+    type_cond = uia.CreatePropertyCondition(
+        UIAC.UIA_ControlTypePropertyId, UIAC.UIA_ListItemControlTypeId
+    )
+    both_cond = uia.CreateAndCondition(name_cond, type_cond)
+    # Search from the root element (desktop), not just the combo subtree, because
+    # Qt renders the dropdown list as a sibling overlay, not a child of the combo.
+    root = uia.GetRootElement()
+    deadline = time.monotonic() + 2.0
+    item = None
+    while time.monotonic() < deadline:
+        item = root.FindFirst(UIAC.TreeScope_Descendants, both_cond)
+        if item is not None:
+            break
+        time.sleep(0.05)
+
+    if item is None:
+        # Dismiss by clicking the combo again, then raise
+        click_element(combo_elem)
+        msg = f"ComboBox item {target_value!r} not found after opening dropdown"
+        raise TunestAutomationError(msg)
+
+    click_element(item)
+    time.sleep(CLICK_SLEEP)
 
 
 def get_combobox_value(combo_elem: UIAC.IUIAutomationElement) -> str:
