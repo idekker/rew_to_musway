@@ -20,7 +20,7 @@ playback:
   generator_level: -12.0             # dBFS, only used when mode=rew_generator
 
 measurement:
-  rta_averages: 100
+  rta_averages: 10
   smoothing: "1/6"
 
 eq:
@@ -109,3 +109,13 @@ channels:
       type: linkwitz_riley
       frequency: 80
       slope: 24
+
+combined_measurements:
+  - name: "LF+Sub"
+    channels: [ 1, 6 ]
+  - name: "RF+Sub"
+    channels: [ 2, 6 ]
+  - name: "LF+RF"
+    channels: [ 1, 2 ]
+  - name: "LF+RF+Sub"
+    channels: [ 1, 2, 6 ]

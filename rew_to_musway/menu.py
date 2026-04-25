@@ -22,11 +22,12 @@ console = Console()
 # ---------------------------------------------------------------------------
 
 MAIN_CHOICES = [
-    "Full calibration (phases 1-4)",
+    "Full calibration (phases 1-5)",
     "Level balancing (phase 1)",
     "Calibrate channels (phase 2)",
     "Verification measurements (phase 3)",
     "Level verification (phase 4)",
+    "Combined measurements (phase 5)",
     "Save measurements (.mdat)",
     "Quit",
 ]

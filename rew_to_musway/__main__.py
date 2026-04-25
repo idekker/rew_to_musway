@@ -19,6 +19,7 @@ from .calibration import (
     LevelOffsets,
     calibrate_channels,
     measure_levels,
+    run_combined_measurements,
     run_verification,
     save_session,
     select_channels,
@@ -180,7 +181,7 @@ async def _dispatch_menu(  # noqa: PLR0913
     state: _SessionState,
 ) -> None:
     """Execute the user's menu choice."""
-    if choice == "Full calibration (phases 1-4)":
+    if choice == "Full calibration (phases 1-5)":
         await _run_full_calibration(config, amp, rew, playback, session_dir, state)
     elif choice == "Level balancing (phase 1)":
         state.level_offsets = await measure_levels(config, amp, rew, playback)
@@ -206,6 +207,8 @@ async def _dispatch_menu(  # noqa: PLR0913
             )
             state.level_offsets = LevelOffsets()
         await verify_levels(config, amp, rew, playback)
+    elif choice == "Combined measurements (phase 5)":
+        await run_combined_measurements(config, amp, rew, playback)
     elif choice == "Save measurements (.mdat)":
         await save_session(rew, session_dir)
 
@@ -218,7 +221,7 @@ async def _run_full_calibration(  # noqa: PLR0913
     session_dir: Path,
     state: _SessionState,
 ) -> None:
-    """Execute the complete 4-phase calibration pipeline."""
+    """Execute the complete 5-phase calibration pipeline."""
     state.level_offsets = await measure_levels(config, amp, rew, playback)
 
     channels = select_channels(config, "all")
@@ -236,6 +239,8 @@ async def _run_full_calibration(  # noqa: PLR0913
 
     if state.level_offsets is not None:
         await verify_levels(config, amp, rew, playback)
+
+    await run_combined_measurements(config, amp, rew, playback)
 
     await save_session(rew, session_dir)
     console.print("\n[bold green]Full calibration complete![/bold green]")

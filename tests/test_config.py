@@ -132,6 +132,9 @@ class TestLoadConfig:
         assert len(config.channels) == 6
         assert config.rew.host == "localhost"
         assert config.playback.mode == PlaybackMode.MANUAL
+        assert len(config.combined_measurements) == 4
+        assert config.combined_measurements[0].name == "LF+Sub"
+        assert config.combined_measurements[0].channels == [1, 6]
 
     def test_missing_file(self) -> None:
         with pytest.raises(FileNotFoundError):

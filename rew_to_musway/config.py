@@ -109,6 +109,14 @@ class ChannelConfig:
 
 
 @dataclass
+class CombinedMeasurement:
+    """A group of channels to measure simultaneously after calibration."""
+
+    name: str = ""
+    channels: list[int] = field(default_factory=list)
+
+
+@dataclass
 class Config:
     rew: REWConfig = field(default_factory=REWConfig)
     tunest_pc: TunestPCConfig = field(default_factory=TunestPCConfig)
@@ -118,6 +126,7 @@ class Config:
     eq: EQConfig = field(default_factory=EQConfig)
     levels: LevelsConfig = field(default_factory=LevelsConfig)
     channels: list[ChannelConfig] = field(default_factory=list)
+    combined_measurements: list[CombinedMeasurement] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -284,6 +293,20 @@ def load_config(path: str | Path) -> Config:
         msg = "Channel numbers must be unique"
         raise ValueError(msg)
 
+    # Combined measurements
+    combined_raw = raw.get("combined_measurements", [])
+    number_set = set(numbers)
+    combined_measurements: list[CombinedMeasurement] = []
+    for cm in combined_raw:
+        cm_channels = [int(n) for n in cm["channels"]]
+        for n in cm_channels:
+            if n not in number_set:
+                msg = f"Combined measurement '{cm['name']}' references unknown channel {n}"
+                raise ValueError(msg)
+        combined_measurements.append(
+            CombinedMeasurement(name=str(cm["name"]), channels=cm_channels),
+        )
+
     return Config(
         rew=rew,
         tunest_pc=tunest_pc,
@@ -293,4 +316,5 @@ def load_config(path: str | Path) -> Config:
         eq=eq,
         levels=levels,
         channels=channels,
+        combined_measurements=combined_measurements,
     )
