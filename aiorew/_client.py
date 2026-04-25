@@ -140,9 +140,9 @@ class REWClient:
 
     async def get_version(self) -> str:
         """Return the REW application version string."""
-        data = await self._http.get("/application")
+        data = await self._http.get("/version")
         if isinstance(data, dict):
-            return data.get("version", str(data))
+            return data.get("message", str(data))
         return str(data)
 
     async def set_blocking(self, enabled: bool) -> None:  # noqa: FBT001
@@ -168,3 +168,18 @@ class REWClient:
         Only meaningful when REW is running without a GUI (``-nogui`` flag).
         """
         await self._http.post("/application/command", {"command": "Shutdown"})
+
+    async def raw_get_command(self, command: str) -> str:
+        """Send RAW GET command to REW.
+
+        Parameters
+        ----------
+        command:
+            GET command to send to REW.
+
+        Returns
+        -------
+        Response as a string.
+
+        """
+        return await self._http.get(command)

@@ -114,7 +114,8 @@ class AudioClient:
 
     async def set_java_output_device(self, device: str) -> None:
         """Select a Java output device by name."""
-        await self._http.post("/audio/java/output-device", device)
+        body = {"device": device}
+        await self._http.post("/audio/java/output-device", body)
 
     # ------------------------------------------------------------------
     # Java - inputs / outputs
@@ -146,7 +147,8 @@ class AudioClient:
 
     async def set_java_output(self, output_name: str) -> None:
         """Select a Java output by name."""
-        await self._http.post("/audio/java/output", output_name)
+        body = {"output": output_name}
+        await self._http.post("/audio/java/output", body)
 
     # ------------------------------------------------------------------
     # Java - channels
@@ -176,9 +178,14 @@ class AudioClient:
         ch = d["channel"]
         return str(ch)
 
+    async def get_java_output_channels(self) -> list[str]:
+        """Return the selected Java output channel (string, may be 'L+R')."""
+        return await self._http.get("/audio/java/output-channels")
+
     async def set_java_output_channel(self, channel: str) -> None:
         """Set the Java output channel (e.g. '1', '2', 'L+R')."""
-        await self._http.post("/audio/java/output-channel", channel)
+        body = {"channel": channel}
+        await self._http.post("/audio/java/output-channel", body)
 
     async def get_java_num_input_channels(self) -> int:
         """Return the number of available Java input channels."""
