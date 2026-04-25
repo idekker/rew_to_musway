@@ -109,9 +109,13 @@ async def main() -> None:  # noqa: PLR0915
         print(f"Configuring RTA: stopAt=True, stopAtValue={RTA_MAX_AVERAGES}...")
         await rew.rta.set_configuration(
             RTAConfiguration(
+                mode="RTA 1/48 octave",
+                averaging="Forever",
                 stopAt=True,
                 stopAtValue=RTA_MAX_AVERAGES,
                 stopGeneratorWithRTA=False,  # we stop the generator ourselves below
+                window="Rectangular",
+                maximumOverlap="93.75%"
             )
         )
 

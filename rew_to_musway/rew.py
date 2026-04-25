@@ -100,9 +100,13 @@ class REWController:
 
         await self.client.rta.set_configuration(
             RTAConfiguration(
+                mode="RTA 1/48 octave",
+                averaging="Forever",
                 stopAt=True,
                 stopAtValue=averages,
                 stopGeneratorWithRTA=False,
+                window="Rectangular",
+                maximumOverlap="93.75%",
             )
         )
 
