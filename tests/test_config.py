@@ -142,13 +142,16 @@ class TestLoadConfig:
 
     def test_no_channels(self, tmp_path: Path) -> None:
         cfg = tmp_path / "bad.yaml"
-        cfg.write_text("rew:\n  host: localhost\n")
+        cfg.write_text(
+            "tunest_pc:\n  exe_path: C:\\tunest.exe\nrew:\n  host: localhost\n"
+        )
         with pytest.raises(ValueError, match="at least one channel"):
             load_config(str(cfg))
 
     def test_duplicate_channels(self, tmp_path: Path) -> None:
         cfg = tmp_path / "dup.yaml"
         cfg.write_text(
+            "tunest_pc:\n  exe_path: C:\\tunest.exe\n"
             "channels:\n  - number: 1\n    name: LF\n  - number: 1\n    name: RF\n"
         )
         with pytest.raises(ValueError, match="unique"):
@@ -156,10 +159,49 @@ class TestLoadConfig:
 
     def test_minimal_config(self, tmp_path: Path) -> None:
         cfg = tmp_path / "min.yaml"
-        cfg.write_text("channels:\n  - number: 1\n    name: LF\n    group: front\n")
+        cfg.write_text(
+            "tunest_pc:\n  exe_path: C:\\tunest.exe\n"
+            "channels:\n  - number: 1\n    name: LF\n    group: front\n"
+        )
         config = load_config(str(cfg))
         assert len(config.channels) == 1
         assert config.channels[0].name == "LF"
         # Defaults applied
         assert config.rew.port == 4735
         assert config.levels.target_spl == 75.0
+
+    def test_manual_mode_config(self, tmp_path: Path) -> None:
+        cfg = tmp_path / "manual.yaml"
+        cfg.write_text(
+            "manual:\n"
+            "  default_preset_path: ./preset.txt\n"
+            "  spl_sanity_threshold: -15.0\n"
+            "  timers:\n"
+            "    action_timeout: 5\n"
+            "    preset_load_timeout: 20\n"
+            "channels:\n  - number: 1\n    name: LF\n    group: front\n"
+        )
+        config = load_config(str(cfg))
+        assert config.tunest_pc is None
+        assert config.manual.default_preset_path == "./preset.txt"
+        assert config.manual.spl_sanity_threshold == -15.0
+        assert config.manual.timers.action_timeout == 5
+        assert config.manual.timers.preset_load_timeout == 20
+
+    def test_manual_mode_defaults(self, tmp_path: Path) -> None:
+        cfg = tmp_path / "manual_defaults.yaml"
+        cfg.write_text(
+            "manual:\n"
+            "  default_preset_path: ./preset.txt\n"
+            "channels:\n  - number: 1\n    name: LF\n    group: front\n"
+        )
+        config = load_config(str(cfg))
+        assert config.manual.spl_sanity_threshold == -10.0
+        assert config.manual.timers.action_timeout == 10
+        assert config.manual.timers.preset_load_timeout == 30
+
+    def test_no_tunest_no_manual_raises(self, tmp_path: Path) -> None:
+        cfg = tmp_path / "neither.yaml"
+        cfg.write_text("channels:\n  - number: 1\n    name: LF\n    group: front\n")
+        with pytest.raises(ValueError, match=r"tunest_pc.*manual"):
+            load_config(str(cfg))
