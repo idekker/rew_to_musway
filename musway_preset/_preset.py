@@ -72,7 +72,7 @@ class MuswayPreset:
         # Master volume
         self._content[MASTER_VOLUME_LINE] = str(-1 * self.get_master_volume())
         path.parent.mkdir(parents=True, exist_ok=True)
-        raw = (_LINE_ENDING.join(self._content) + _LINE_ENDING).encode(_ENCODING)
+        raw = _LINE_ENDING.join(self._content).encode(_ENCODING)
         path.write_bytes(raw)
 
     # -- Channel access ------------------------------------------------------

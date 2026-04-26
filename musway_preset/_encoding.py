@@ -6,34 +6,16 @@ from __future__ import annotations
 # Volume encoding
 # ---------------------------------------------------------------------------
 #
-# The preset file stores channel volumes as integers with a bit-field layout.
-# Bit 7 is a dead bit (ignored by decode).  Not all 0.1 dB values are
-# representable — there are periodic 0.9 dB gaps every ~3.2 dB caused by
-# bit 4 double-contributing.  For encoding we build a lookup table from
-# decoded values to the smallest encoded int, then snap to the nearest
-# representable value.
+# The preset file stores channel volumes as integers with a bit-field layout
+# where bit 7 is a dead (always-zero) bit.  To decode, remove bit 7 and
+# scale by -0.1.  To encode, compute the logical value (dB * -10), then
+# insert a zero bit at position 7.
+#
+# The encoding is lossless at 0.1 dB resolution — every 0.1 dB step from
+# 0.0 downward is representable.
 
-_MAX_ENCODED: int = 4096
-
-_DECODE_TABLE: dict[float, int] = {}
-# Pairs sorted by dB descending (0.0 first) for nearest-value search.
-_ENCODE_SORTED: list[tuple[float, int]] = []
-
-
-def _decode_raw(val: int) -> float:
-    return round(-0.1 * (((val & 0xFF10) >> 1) | (val & 0x7F)), 1)
-
-
-def _build_tables() -> None:
-    if _DECODE_TABLE:
-        return
-    for v in range(_MAX_ENCODED):
-        db = _decode_raw(v)
-        if db not in _DECODE_TABLE:
-            _DECODE_TABLE[db] = v
-    _ENCODE_SORTED.extend(
-        sorted(_DECODE_TABLE.items(), key=lambda x: x[0], reverse=True)
-    )
+_DEAD_BIT: int = 7
+_LOW_MASK: int = (1 << _DEAD_BIT) - 1  # 0x7F — bits 0-6
 
 
 def decode_volume(val: int) -> float:
@@ -49,14 +31,12 @@ def decode_volume(val: int) -> float:
     Volume in dB (always <= 0).
 
     """
-    return _decode_raw(val)
+    logical = ((val >> 1) & ~_LOW_MASK) | (val & _LOW_MASK)
+    return round(-0.1 * logical, 1)
 
 
 def encode_volume(db: float) -> int:
     """Encode a dB volume to the preset integer format.
-
-    Snaps to the nearest representable value (0.1 dB resolution with
-    periodic gaps).
 
     Parameters
     ----------
@@ -68,20 +48,8 @@ def encode_volume(db: float) -> int:
     Encoded integer for the preset file.
 
     """
-    _build_tables()
-    if db in _DECODE_TABLE:
-        return _DECODE_TABLE[db]
-    # Snap to nearest representable value
-    best_val = 0
-    best_diff = float("inf")
-    for entry_db, entry_val in _ENCODE_SORTED:
-        diff = abs(db - entry_db)
-        if diff < best_diff:
-            best_diff = diff
-            best_val = entry_val
-        elif entry_db < db - 1.0:
-            break
-    return best_val
+    logical = round(-db * 10)
+    return ((logical & ~_LOW_MASK) << 1) | (logical & _LOW_MASK)
 
 
 # ---------------------------------------------------------------------------
