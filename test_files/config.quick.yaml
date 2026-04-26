@@ -46,7 +46,8 @@ channels:
   - number: 1
     name: "LF"
     group: front
-    target_offset: -3.0
+    finetune_loops: 2
+    target_offset: 0.0
     highpass: null
     lowpass: null
 

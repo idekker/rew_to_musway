@@ -35,6 +35,11 @@ if TYPE_CHECKING:
 
 SAMPLE_UUID = UUID("12345678-1234-1234-1234-123456789abc")
 
+# Distinct UUIDs for predicted/arithmetic results
+_PREDICTED_UUID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+_DIVIDE_UUID = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+_MULTIPLY_UUID = UUID("cccccccc-cccc-cccc-cccc-cccccccccccc")
+
 
 def _make_channel(
     number: int,
@@ -124,8 +129,10 @@ def mock_rew(mock_spl_values: Callable[..., MagicMock]) -> AsyncMock:
     rew.configure_target = AsyncMock()
     rew.configure_match_settings = AsyncMock()
     rew.match_target = AsyncMock()
-    rew.generate_predicted = AsyncMock()
+    rew.generate_predicted = AsyncMock(return_value=_PREDICTED_UUID)
     rew.get_filters = AsyncMock(return_value=[])
+    rew.divide_measurements = AsyncMock(return_value=_DIVIDE_UUID)
+    rew.multiply_measurements = AsyncMock(return_value=_MULTIPLY_UUID)
     rew.save_all_measurements = AsyncMock()
     rew.generator_play = AsyncMock()
     rew.generator_stop = AsyncMock()

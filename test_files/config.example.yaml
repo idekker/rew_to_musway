@@ -46,6 +46,7 @@ channels:
   - number: 1
     name: "LF"
     group: front
+    finetune_loops: 2                  # iterative refinement loops after EQ matching
     highpass:
       type: linkwitz_riley
       frequency: 50

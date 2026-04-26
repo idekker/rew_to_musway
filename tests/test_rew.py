@@ -14,6 +14,8 @@ if TYPE_CHECKING:
     from rew_to_musway.config import Config
 
 SAMPLE_UUID = UUID("12345678-1234-1234-1234-123456789abc")
+_PREDICTED_UUID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+_ARITH_UUID = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
 
 @pytest.fixture
@@ -47,6 +49,12 @@ def mock_client() -> AsyncMock:
     client.measurements.get_filters = AsyncMock(return_value=[])
     client.measurements.delete_all = AsyncMock()
     client.measurements.save_all = AsyncMock()
+    client.measurements.arithmetic = AsyncMock()
+
+    # Default list returns SAMPLE_UUID only; tests override as needed
+    _summary_sample = MagicMock()
+    _summary_sample.uuid = SAMPLE_UUID
+    client.measurements.list = AsyncMock(return_value=[_summary_sample])
 
     # SPL meter
     client.spl_meter = AsyncMock()
@@ -143,7 +151,17 @@ class TestEQConfiguration:
     async def test_generate_predicted(
         self, rew_controller: REWController, mock_client: AsyncMock
     ) -> None:
-        await rew_controller.generate_predicted(SAMPLE_UUID)
+        # Before: only SAMPLE_UUID; after: SAMPLE_UUID + PREDICTED_UUID
+        summary_before = MagicMock()
+        summary_before.uuid = SAMPLE_UUID
+        summary_after = MagicMock()
+        summary_after.uuid = _PREDICTED_UUID
+        mock_client.measurements.list = AsyncMock(
+            side_effect=[[summary_before], [summary_before, summary_after]]
+        )
+
+        result = await rew_controller.generate_predicted(SAMPLE_UUID)
+        assert result == _PREDICTED_UUID
         mock_client.measurements.generate_predicted_measurement.assert_called_once_with(
             SAMPLE_UUID
         )
@@ -174,3 +192,55 @@ class TestMeasurementManagement:
     ) -> None:
         await rew_controller.save_all_measurements("C:\\output\\test.mdat")
         mock_client.measurements.save_all.assert_called_once()
+
+
+class TestArithmetic:
+    @pytest.mark.asyncio
+    async def test_divide_measurements(
+        self, rew_controller: REWController, mock_client: AsyncMock
+    ) -> None:
+        uuid_a = SAMPLE_UUID
+        uuid_b = _PREDICTED_UUID
+
+        summary_a = MagicMock()
+        summary_a.uuid = uuid_a
+        summary_b = MagicMock()
+        summary_b.uuid = uuid_b
+        summary_new = MagicMock()
+        summary_new.uuid = _ARITH_UUID
+
+        mock_client.measurements.list = AsyncMock(
+            side_effect=[
+                [summary_a, summary_b],
+                [summary_a, summary_b, summary_new],
+            ]
+        )
+
+        result = await rew_controller.divide_measurements(uuid_a, uuid_b)
+        assert result == _ARITH_UUID
+        mock_client.measurements.arithmetic.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_multiply_measurements(
+        self, rew_controller: REWController, mock_client: AsyncMock
+    ) -> None:
+        uuid_a = SAMPLE_UUID
+        uuid_b = _PREDICTED_UUID
+
+        summary_a = MagicMock()
+        summary_a.uuid = uuid_a
+        summary_b = MagicMock()
+        summary_b.uuid = uuid_b
+        summary_new = MagicMock()
+        summary_new.uuid = _ARITH_UUID
+
+        mock_client.measurements.list = AsyncMock(
+            side_effect=[
+                [summary_a, summary_b],
+                [summary_a, summary_b, summary_new],
+            ]
+        )
+
+        result = await rew_controller.multiply_measurements(uuid_a, uuid_b)
+        assert result == _ARITH_UUID
+        mock_client.measurements.arithmetic.assert_called_once()

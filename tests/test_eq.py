@@ -151,3 +151,144 @@ class TestCalibrateChannels:
 
         call_kwargs = mock_rew.configure_target.call_args
         assert call_kwargs.kwargs["target_offset"] == offset_db
+
+
+class TestFinetuning:
+    @pytest.mark.asyncio
+    async def test_no_finetuning_by_default(
+        self,
+        sample_config: Config,
+        mock_amp: AsyncMock,
+        mock_rew: AsyncMock,
+        mock_playback: AsyncMock,
+        tmp_path: Path,
+    ) -> None:
+        """Default finetune_loops=0 means no arithmetic or extra RTA calls."""
+        channels = select_channels(sample_config, "single", single=1)
+
+        with patch("rew_to_musway.calibration._eq.asyncio.sleep"):
+            await calibrate_channels(
+                sample_config, mock_amp, mock_rew, mock_playback, tmp_path, channels
+            )
+
+        # Only 1 RTA call (the initial flat measurement)
+        mock_rew.run_rta.assert_called_once()
+        mock_rew.divide_measurements.assert_not_called()
+        mock_rew.multiply_measurements.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_single_finetune_loop(
+        self,
+        sample_config: Config,
+        mock_amp: AsyncMock,
+        mock_rew: AsyncMock,
+        mock_playback: AsyncMock,
+        tmp_path: Path,
+    ) -> None:
+        """One finetune loop adds one extra RTA + divide + multiply + EQ pipeline."""
+        ch = sample_config.channels[0]
+        modified = ChannelConfig(
+            number=ch.number,
+            name=ch.name,
+            group=ch.group,
+            highpass=ch.highpass,
+            lowpass=ch.lowpass,
+            finetune_loops=1,
+        )
+
+        with patch("rew_to_musway.calibration._eq.asyncio.sleep"):
+            result = await calibrate_channels(
+                sample_config, mock_amp, mock_rew, mock_playback, tmp_path, [modified]
+            )
+
+        assert result == [ch.number]
+
+        # 1 initial RTA + 1 finetune RTA = 2
+        expected_rta_calls = 2
+        assert mock_rew.run_rta.call_count == expected_rta_calls
+
+        # 1 divide (predicted / measured)
+        mock_rew.divide_measurements.assert_called_once()
+
+        # 1 multiply (basis * correction)
+        mock_rew.multiply_measurements.assert_called_once()
+
+        # EQ pipeline runs twice: initial + finetune
+        expected_eq_calls = 2
+        assert mock_rew.match_target.call_count == expected_eq_calls
+        assert mock_rew.generate_predicted.call_count == expected_eq_calls
+
+        # Filters exported twice (initial + finetune)
+        assert mock_amp.import_eq.call_count == expected_eq_calls
+
+    @pytest.mark.asyncio
+    async def test_multiple_finetune_loops(
+        self,
+        sample_config: Config,
+        mock_amp: AsyncMock,
+        mock_rew: AsyncMock,
+        mock_playback: AsyncMock,
+        tmp_path: Path,
+    ) -> None:
+        """Multiple finetune loops compound correctly."""
+        num_loops = 3
+        ch = sample_config.channels[0]
+        modified = ChannelConfig(
+            number=ch.number,
+            name=ch.name,
+            group=ch.group,
+            highpass=ch.highpass,
+            lowpass=ch.lowpass,
+            finetune_loops=num_loops,
+        )
+
+        with patch("rew_to_musway.calibration._eq.asyncio.sleep"):
+            await calibrate_channels(
+                sample_config, mock_amp, mock_rew, mock_playback, tmp_path, [modified]
+            )
+
+        # 1 initial + N finetune RTAs
+        expected_rta = 1 + num_loops
+        assert mock_rew.run_rta.call_count == expected_rta
+
+        assert mock_rew.divide_measurements.call_count == num_loops
+        assert mock_rew.multiply_measurements.call_count == num_loops
+
+        # EQ pipeline: 1 initial + N finetune
+        expected_eq = 1 + num_loops
+        assert mock_rew.match_target.call_count == expected_eq
+        assert mock_amp.import_eq.call_count == expected_eq
+
+    @pytest.mark.asyncio
+    async def test_finetune_measurement_naming(
+        self,
+        sample_config: Config,
+        mock_amp: AsyncMock,
+        mock_rew: AsyncMock,
+        mock_playback: AsyncMock,
+        tmp_path: Path,
+    ) -> None:
+        """Finetuning measurements are named with loop index."""
+        ch = sample_config.channels[0]
+        modified = ChannelConfig(
+            number=ch.number,
+            name=ch.name,
+            group=ch.group,
+            highpass=ch.highpass,
+            lowpass=ch.lowpass,
+            finetune_loops=1,
+        )
+
+        with patch("rew_to_musway.calibration._eq.asyncio.sleep"):
+            await calibrate_channels(
+                sample_config, mock_amp, mock_rew, mock_playback, tmp_path, [modified]
+            )
+
+        rename_calls = [
+            call.args[1] for call in mock_rew.rename_measurement.call_args_list
+        ]
+        # Should include: flat, finetune measured, correction, adjusted
+        assert f"{ch.name}_flat" in rename_calls
+        assert f"{ch.name}_finetune_1_measured" in rename_calls
+        assert f"{ch.name}_finetune_1_correction" in rename_calls
+        assert f"{ch.name}_finetune_1_adjusted" in rename_calls

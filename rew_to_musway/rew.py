@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from aiorew import (
+    ArithmeticFunction,
     Equaliser,
     FilterSetting,
     GeneratorSignal,
@@ -289,14 +290,79 @@ class REWController:
         await self.client.measurements.match_target(uuid)
         logger.info("Match complete.")
 
-    async def generate_predicted(self, uuid: UUID) -> dict[str, Any] | None:
-        """Generate predicted measurement from current EQ filters."""
+    async def generate_predicted(self, uuid: UUID) -> UUID:
+        """Generate predicted measurement and return its UUID."""
         logger.info("Generating predicted measurement for %s", uuid)
-        return await self.client.measurements.generate_predicted_measurement(uuid)
+        before = await self.get_measurement_uuids()
+        await self.client.measurements.generate_predicted_measurement(uuid)
+        after = await self.get_measurement_uuids()
+        new = after - before
+        if len(new) != 1:
+            msg = f"Expected 1 new predicted measurement, got {len(new)}"
+            raise RuntimeError(msg)
+        predicted_uuid = new.pop()
+        logger.info("Predicted measurement UUID: %s", predicted_uuid)
+        return predicted_uuid
 
     async def get_filters(self, uuid: UUID) -> list[FilterSetting]:
         """Return the EQ filters for a measurement."""
         return await self.client.measurements.get_filters(uuid)
+
+    # ------------------------------------------------------------------
+    # Measurement arithmetic
+    # ------------------------------------------------------------------
+
+    async def get_measurement_uuids(self) -> set[UUID]:
+        """Return the UUIDs of all current measurements."""
+        summaries = await self.client.measurements.list()
+        return {s.uuid for s in summaries}
+
+    async def divide_measurements(self, a: UUID, b: UUID) -> UUID:
+        """Compute *A / B* and return the UUID of the new measurement.
+
+        Parameters
+        ----------
+        a:
+            Numerator measurement UUID.
+        b:
+            Denominator measurement UUID.
+
+        """
+        before = await self.get_measurement_uuids()
+        parameters = {"maxGain": 10.0, "lowerLimit": 20, "upperLimit": 20000}
+        await self.client.measurements.arithmetic(
+            [a, b], ArithmeticFunction.A_OVER_B, parameters
+        )
+        after = await self.get_measurement_uuids()
+        new = after - before
+        if len(new) != 1:
+            msg = f"Expected 1 new measurement from A/B, got {len(new)}"
+            raise RuntimeError(msg)
+        result_uuid = new.pop()
+        logger.info("A/B: %s / %s → %s", a, b, result_uuid)
+        return result_uuid
+
+    async def multiply_measurements(self, a: UUID, b: UUID) -> UUID:
+        """Compute *A * B* and return the UUID of the new measurement.
+
+        Parameters
+        ----------
+        a:
+            First measurement UUID.
+        b:
+            Second measurement UUID.
+
+        """
+        before = await self.get_measurement_uuids()
+        await self.client.measurements.arithmetic([a, b], ArithmeticFunction.A_TIMES_B)
+        after = await self.get_measurement_uuids()
+        new = after - before
+        if len(new) != 1:
+            msg = f"Expected 1 new measurement from A*B, got {len(new)}"
+            raise RuntimeError(msg)
+        result_uuid = new.pop()
+        logger.info("A*B: %s * %s → %s", a, b, result_uuid)
+        return result_uuid
 
     # ------------------------------------------------------------------
     # Measurements management

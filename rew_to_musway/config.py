@@ -106,6 +106,7 @@ class ChannelConfig:
     lowpass: FilterConfig | None = None
     match_range: tuple[float, float] | None = None  # manual override
     target_offset: float = 0.0  # dB offset applied to calculated target level
+    finetune_loops: int = 0  # number of iterative refinement loops after phase 2
 
 
 @dataclass
@@ -183,6 +184,7 @@ def _parse_channel(data: dict[str, Any]) -> ChannelConfig:
         lowpass=_parse_filter(data.get("lowpass")),
         match_range=match_range,
         target_offset=float(data.get("target_offset", 0.0)),
+        finetune_loops=int(data.get("finetune_loops", 0)),
     )
 
 
