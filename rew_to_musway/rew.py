@@ -172,7 +172,7 @@ class REWController:
         await self.client.spl_meter.stop(meter_id=1)
         await self.client.spl_meter.close(meter_id=1)
 
-    async def measure_spl(self, warmup: float = 1.5) -> SPLValues:
+    async def measure_spl(self, warmup: float = 3) -> SPLValues:
         """Open SPL meter, wait for stable reading, return values, close.
 
         Parameters
