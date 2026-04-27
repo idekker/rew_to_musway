@@ -223,12 +223,6 @@ class TestBufferApply:
         mock_tunest.set_lowpass.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_channel_level_from_buffer(self, amp: AmpController) -> None:
-        await amp.set_channel_level(1, -5.0)
-        level = await amp.get_channel_level(1)
-        assert level == -5.0
-
-    @pytest.mark.asyncio
     async def test_last_write_wins(
         self, amp: AmpController, mock_tunest: MagicMock
     ) -> None:

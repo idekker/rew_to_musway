@@ -275,6 +275,9 @@ class ManualAmp:
         base = self._last_preset_path or self._default_preset_path
         preset = MuswayPreset.load(base)
 
+        # Unmute master
+        preset.set_master_volume(0)
+
         # Apply buffered changes
         for ch_num, buf in self._buffer.channels.items():
             if buf.level is not None:
@@ -358,19 +361,6 @@ class ManualAmp:
         msg = f"Ensure preset '{preset_name}' is loaded in Musway software"
         logger.info(msg)
         await timed_prompt(msg, self._action_timeout)
-
-    # ------------------------------------------------------------------
-    # Query
-    # ------------------------------------------------------------------
-
-    async def get_channel_level(self, channel: int) -> float:
-        """Return buffered level for *channel*."""
-        if channel in self._levels:
-            return self._levels[channel]
-        # Fall back to reading from last preset
-        base = self._last_preset_path or self._default_preset_path
-        preset = MuswayPreset.load(base)
-        return preset.get_channel_level(channel)
 
     # ------------------------------------------------------------------
     # Connection (no-op for manual mode)

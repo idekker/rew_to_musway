@@ -51,7 +51,6 @@ def mock_amp() -> AsyncMock:
     amp.mute_all = AsyncMock()
     amp.set_master_mute = AsyncMock()
     amp.apply = AsyncMock()
-    amp.get_channel_level = AsyncMock(return_value=0.0)
     return amp
 
 
@@ -137,7 +136,7 @@ class TestMeasureLoop:
         # Level offsets NOT set during measure loop (only initial reset to 0)
         level_calls = mock_amp.set_channel_level.call_args_list
         for call in level_calls:
-            assert call.args[1] == 0.0, "Measure loop should only reset levels to 0"
+            assert call.args[1] == -60.0, "Measure loop should only reset levels to 0"
 
     @pytest.mark.asyncio
     @patch("rew_to_musway.calibration._unified._countdown", new_callable=AsyncMock)

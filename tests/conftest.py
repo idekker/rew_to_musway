@@ -28,7 +28,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -158,7 +157,6 @@ def mock_amp() -> AsyncMock:
     amp.set_master_mute = AsyncMock()
     amp.set_channel_mute = AsyncMock()
     amp.set_channel_level = AsyncMock()
-    amp.get_channel_level = AsyncMock(return_value=0.0)
     amp.configure_filters = AsyncMock()
     amp.configure_all_filters = AsyncMock()
     amp.bypass_eq = AsyncMock()

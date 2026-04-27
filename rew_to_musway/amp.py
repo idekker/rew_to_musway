@@ -115,10 +115,6 @@ class AmpBackend(Protocol):
 
     async def restore_eq(self) -> None: ...
 
-    # -- Query (from buffer or hardware) -----------------------------------
-
-    async def get_channel_level(self, channel: int) -> float: ...
-
 
 # ---------------------------------------------------------------------------
 # Mapping helpers (Tunest PC specific)
@@ -363,15 +359,6 @@ class TunestPCAmp:
         await self._run(
             self._tunest.set_lowpass, channel, ft, str(state.frequency), slope
         )
-
-    # ------------------------------------------------------------------
-    # Query
-    # ------------------------------------------------------------------
-
-    async def get_channel_level(self, channel: int) -> float:
-        if channel in self._levels:
-            return self._levels[channel]
-        return await self._run(self._tunest.get_channel_level, channel)
 
     # ------------------------------------------------------------------
     # Legacy compound operations (still used by existing calibration code)

@@ -158,12 +158,6 @@ class TestManualAmpBuffer:
         expected = str((session_dir / "preset_initial.txt").resolve())
         mock_clipboard.assert_called_once_with(expected)
 
-    @pytest.mark.asyncio
-    async def test_get_channel_level_from_buffer(self, manual_amp: ManualAmp) -> None:
-        await manual_amp.set_channel_level(1, -5.0)
-        level = await manual_amp.get_channel_level(1)
-        assert level == -5.0
-
 
 # ---------------------------------------------------------------------------
 # Immediate operations

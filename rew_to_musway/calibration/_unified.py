@@ -117,7 +117,7 @@ async def run_measure_loop(
     # Prepare: bypass EQ, configure filters, levels to 0
     for ch_cfg in channels:
         await ctx.amp.reset_eq(ch_cfg.number)
-        await ctx.amp.set_channel_level(ch_cfg.number, 0.0)
+        await ctx.amp.set_channel_level(ch_cfg.number, -60.0)
         await ctx.amp.set_crossover(ch_cfg)
     await ctx.amp.apply()
 
@@ -382,8 +382,7 @@ async def run_verification_loop(
             f"{_OFFSET_THRESHOLD_DB} dB threshold — buffering adjustments.[/yellow]"
         )
         for ch_num, adj in adjustments.items():
-            current = await ctx.amp.get_channel_level(ch_num)
-            await ctx.amp.set_channel_level(ch_num, current + adj)
+            await ctx.amp.set_channel_level(ch_num, 0.0 + adj)
 
         await ctx.amp.apply()
     else:
