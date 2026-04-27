@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 _POLL_INTERVAL = 0.1  # seconds between keypress checks
 
+_KEY_CTRL_C = b"\x03"
 _KEY_ENTER = b"\r"
 _KEY_ESC = b"\x1b"
 
@@ -113,6 +114,10 @@ async def timed_prompt(
     ) as live:
         while True:
             key = await _poll_keypress()
+
+            if key == _KEY_CTRL_C:
+                logger.debug("CTRL_C pressed")
+                raise KeyboardInterrupt
 
             if key == _KEY_ENTER:
                 logger.debug("Timed prompt: Enter pressed (%.1fs remaining)", remaining)

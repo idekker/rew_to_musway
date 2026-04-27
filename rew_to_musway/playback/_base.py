@@ -25,6 +25,7 @@ console = Console()
 SPL_POLL_INTERVAL = 0.5
 
 # Key codes
+_KEY_CTRL_C = b"\x03"
 _KEY_ENTER = b"\r"
 _KEY_ESC = b"\x1b"
 
@@ -184,6 +185,9 @@ async def check_spl_level(
 
                 # Check for keypress
                 key = await _poll_keypress()
+                if key == _KEY_CTRL_C:
+                    logger.debug("CTRL_C pressed")
+                    raise KeyboardInterrupt
                 if key == _KEY_ENTER:
                     break
                 if key == _KEY_ESC and not timer_cancelled:
