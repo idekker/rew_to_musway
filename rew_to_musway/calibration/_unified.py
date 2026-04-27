@@ -381,10 +381,12 @@ async def run_verification_loop(
             f"\n[yellow]{len(adjustments)} channel(s) exceed "
             f"{_OFFSET_THRESHOLD_DB} dB threshold — buffering adjustments.[/yellow]"
         )
-        for ch_num, adj in adjustments.items():
-            await ctx.amp.set_channel_level(ch_num, 0.0 + adj)
-
-        await ctx.amp.apply()
+        # ruff: disable[ERA001]
+        # for ch_num, adj in adjustments.items():
+        #     await ctx.amp.set_channel_level(ch_num, 0.0 + adj)
+        #
+        # await ctx.amp.apply()
+        # ruff: enable[ERA001]
     else:
         console.print(
             "\n[green]All channels within threshold — no adjustments needed.[/green]"
