@@ -96,7 +96,7 @@ async def _run_eq_pipeline(
     await ctx.rew.apply_smoothing(uuid)
     await ctx.rew.configure_equaliser(uuid)
     await ctx.rew.configure_target(
-        uuid, target_cfg=ch_cfg.target, target_offset=ch_cfg.target_offset
+        uuid, target_cfg=ch_cfg.target, target_offset=ch_cfg.target.offset
     )
 
     match_start, match_end = compute_match_range(

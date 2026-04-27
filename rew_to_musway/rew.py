@@ -276,7 +276,7 @@ class REWController:
             await self.client.measurements.set_target_settings(uuid, target)
 
         # House curve
-        house_curve = self._config.paths.house_curve
+        house_curve = self._config.eq.house_curve
         if house_curve:
             house_curve_path = house_curve.replace("\\", "/")
             logger.debug("Setting house curve: %s", house_curve_path)

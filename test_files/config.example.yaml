@@ -19,7 +19,6 @@ manual:
 
 paths:
   output_dir: "./output"
-  house_curve: "./test_files/house_curve.txt"
 
 playback:
   mode: manual                       # manual | rew_generator
@@ -35,6 +34,7 @@ measurement:
 eq:
   manufacturer: "Musway"
   model: "31 bands (Output)"
+  house_curve: "./test_files/house_curve.txt"
   match_range_margin: 1              # octaves beyond filter cutoff
   match_target:
     individual_max_boost: 6.0        # dB
@@ -82,11 +82,11 @@ channels:
   - number: 3
     name: "C"
     group: centre
-    target_offset: -3.0              # dB offset applied to calculated EQ target level
     target:
       shape: bass_limited
       cutoff_hz: 55
       slope_db_per_octave: 24
+      offset: -3.0                   # dB offset applied to calculated EQ target level
     highpass:
       type: linkwitz_riley
       frequency: 300

@@ -66,7 +66,6 @@ class ManualConfig:
 @dataclass
 class PathsConfig:
     output_dir: str = "./output"
-    house_curve: str = ""
 
 
 @dataclass
@@ -103,6 +102,7 @@ class EQConfig:
     model: str = "31 bands (Output)"
     match_range_margin: int = 1
     match_target: MatchTargetConfig = field(default_factory=MatchTargetConfig)
+    house_curve: str = ""
 
 
 @dataclass
@@ -130,6 +130,7 @@ class TargetConfig:
     shape: TargetShape = TargetShape.FULL_RANGE
     cutoff_hz: float = 80.0
     slope_db_per_octave: int = 24
+    offset: float = 0.0  # dB offset applied to calculated target level
 
 
 @dataclass
@@ -141,7 +142,6 @@ class ChannelConfig:
     lowpass: FilterConfig | None = None
     target: TargetConfig = field(default_factory=TargetConfig)
     match_range: tuple[float, float] | None = None  # manual override
-    target_offset: float = 0.0  # dB offset applied to calculated target level
     finetune_loops: int = 0  # number of iterative refinement loops after phase 2
 
 
@@ -196,6 +196,7 @@ def _parse_target(data: dict[str, Any] | None) -> TargetConfig:
         shape=TargetShape(data.get("shape", "full_range")),
         cutoff_hz=float(data.get("cutoff_hz", 80.0)),
         slope_db_per_octave=int(data.get("slope_db_per_octave", 24)),
+        offset=float(data.get("offset", 0.0)),
     )
 
 
@@ -252,7 +253,6 @@ def _parse_channel(data: dict[str, Any]) -> ChannelConfig:
         lowpass=_parse_filter(data.get("lowpass")),
         target=_parse_target(data.get("target")),
         match_range=match_range,
-        target_offset=float(data.get("target_offset", 0.0)),
         finetune_loops=int(data.get("finetune_loops", 0)),
     )
 
@@ -317,11 +317,8 @@ def load_config(path: str | Path) -> Config:
 
     # Paths
     paths_raw = raw.get("paths", {})
-    house_curve_raw = str(paths_raw.get("house_curve", ""))
-    house_curve = str(Path(house_curve_raw).resolve()) if house_curve_raw else ""
     paths = PathsConfig(
         output_dir=str(paths_raw.get("output_dir", "./output")),
-        house_curve=house_curve,
     )
 
     # Playback
@@ -344,11 +341,14 @@ def load_config(path: str | Path) -> Config:
     # EQ
     eq_raw = raw.get("eq", {})
     mt_raw = eq_raw.get("match_target", {})
+    house_curve_raw = str(eq_raw.get("house_curve", ""))
+    house_curve = str(Path(house_curve_raw).resolve()) if house_curve_raw else ""
     eq = EQConfig(
         manufacturer=str(eq_raw.get("manufacturer", "Musway")),
         model=str(eq_raw.get("model", "31 bands (Output)")),
         match_range_margin=int(eq_raw.get("match_range_margin", 1)),
         match_target=_parse_match_target(mt_raw),
+        house_curve=house_curve,
     )
 
     # Levels

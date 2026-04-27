@@ -4,17 +4,23 @@ rew:
   host: localhost
   port: 4735
 
-tunest_pc:
-  exe_path: "D:\\Program Files (x86)\\TUNEST PC\\TUNEST_PC_FULL.exe"
-  model: "M6"
+#tunest_pc:
+#  exe_path: "D:\\Program Files (x86)\\TUNEST PC\\TUNEST_PC_FULL.exe"
+#  model: "M6"
+
+manual:
+  default_preset_path: "./test_files/default_preset.txt"
+  spl_sanity_threshold: -10.0     # dB below target_spl to trigger warning
+  timers:
+    action_timeout: 3             # seconds for mute/solo prompts
+    preset_load_timeout: 3        # seconds for preset load prompts
 
 paths:
   output_dir: "./output"
-  house_curve: "./test_files/house_curve.txt"
 
 playback:
   mode: rew_generator                # manual | rew_generator
-  output_device: "EXCL: SPDIF Interface (SABRE 24/96 DAC_DigiT)"   # only used when mode=rew_generator
+  output_device: "EXCL: Realtek Digital Output (Realtek(R) Audio)"   # only used when mode=rew_generator
   output_channel: "L+R"              # only used when mode=rew_generator
   generator_signal: pink_periodic    # only used when mode=rew_generator
   generator_level: -12.0             # dBFS, only used when mode=rew_generator
@@ -26,6 +32,7 @@ measurement:
 eq:
   manufacturer: "Musway"
   model: "31 bands (Output)"
+  house_curve: "./test_files/house_curve.txt"
   match_range_margin: 1              # octaves beyond filter cutoff
   match_target:
     individual_max_boost: 6.0        # dB
@@ -47,14 +54,17 @@ channels:
     name: "LF"
     group: front
     finetune_loops: 2
-    target_offset: 0.0
+    target:
+      shape: full_range
     highpass: null
     lowpass: null
 
   - number: 2
     name: "RF"
     group: front
-    target_offset: -3.0
+    target:
+      shape: full_range
+      offset: -3.0
     highpass: null
     lowpass: null
 
