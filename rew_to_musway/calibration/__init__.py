@@ -2,7 +2,7 @@
 
 from ._combined import run_combined_measurements
 from ._eq import calibrate_channels, select_channels
-from ._levels import LevelOffsets, measure_levels, verify_levels
+from ._levels import LevelOffsets
 from ._unified import (
     MeasureResult,
     VerificationResult,
@@ -19,7 +19,6 @@ __all__ = [
     "VerificationResult",
     "_eligible_finetune_channels",
     "calibrate_channels",
-    "measure_levels",
     "run_combined_measurements",
     "run_finetune_loop",
     "run_measure_loop",
@@ -27,5 +26,4 @@ __all__ = [
     "run_verification_loop",
     "save_session",
     "select_channels",
-    "verify_levels",
 ]
