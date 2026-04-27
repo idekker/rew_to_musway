@@ -81,7 +81,7 @@ def manual_amp(
 class TestManualAmpBuffer:
     @pytest.mark.asyncio
     async def test_empty_apply_returns_none(self, manual_amp: ManualAmp) -> None:
-        result = await manual_amp.apply(PresetPhase.INITIAL)
+        result = await manual_amp.apply()
         assert result is None
 
     @pytest.mark.asyncio
@@ -95,7 +95,7 @@ class TestManualAmpBuffer:
         session_dir: Path,
     ) -> None:
         await manual_amp.set_channel_level(1, -3.0)
-        result = await manual_amp.apply(PresetPhase.INITIAL)
+        result = await manual_amp.apply()
         assert result is not None
         assert result == session_dir / "preset_initial.txt"
         assert result.exists()
@@ -110,9 +110,9 @@ class TestManualAmpBuffer:
         manual_amp: ManualAmp,
     ) -> None:
         await manual_amp.set_channel_level(1, -3.0)
-        await manual_amp.apply(PresetPhase.INITIAL)
-        # Second apply should be no-op
-        result = await manual_amp.apply(PresetPhase.EQ)
+        await manual_amp.apply()
+        # Second apply should be no-op (buffer cleared)
+        result = await manual_amp.apply()
         assert result is None
 
     @pytest.mark.asyncio
@@ -125,16 +125,23 @@ class TestManualAmpBuffer:
         manual_amp: ManualAmp,
         session_dir: Path,
     ) -> None:
-        # First apply: set level
+        # First apply → preset_initial.txt
         await manual_amp.set_channel_level(1, -3.0)
-        path1 = await manual_amp.apply(PresetPhase.INITIAL)
+        path1 = await manual_amp.apply()
         assert path1 is not None
+        assert path1 == session_dir / "preset_initial.txt"
 
-        # Second apply: reset EQ — should load from preset_initial.txt
+        # Second apply → preset_eq.txt (loads from preset_initial.txt)
         await manual_amp.reset_eq(1)
-        path2 = await manual_amp.apply(PresetPhase.EQ)
+        path2 = await manual_amp.apply()
         assert path2 is not None
         assert path2 == session_dir / "preset_eq.txt"
+
+        # Third apply → preset_finetune_1.txt
+        await manual_amp.set_channel_level(2, -1.0)
+        path3 = await manual_amp.apply()
+        assert path3 is not None
+        assert path3 == session_dir / "preset_finetune_1.txt"
 
     @pytest.mark.asyncio
     @patch("rew_to_musway.manual_amp._copy_to_clipboard")
@@ -147,7 +154,7 @@ class TestManualAmpBuffer:
         session_dir: Path,
     ) -> None:
         await manual_amp.set_channel_level(1, -1.0)
-        await manual_amp.apply(PresetPhase.INITIAL)
+        await manual_amp.apply()
         expected = str((session_dir / "preset_initial.txt").resolve())
         mock_clipboard.assert_called_once_with(expected)
 

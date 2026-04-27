@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 from rew_to_musway.prompt import TimedPromptResult, timed_prompt
 
 _KEY_ENTER = b"\r"
-_KEY_BACKSPACE = b"\x08"
+_KEY_ESC = b"\x1b"
 
 
 def _make_key_sequence(keys: list[bytes | None]) -> MagicMock:
@@ -77,18 +77,18 @@ class TestTimedPromptExpiry:
 class TestTimedPromptCancel:
     @pytest.mark.asyncio
     @pytest.mark.usefixtures("_no_live", "_no_drain")
-    async def test_backspace_cancels_then_enter(self) -> None:
-        keys: list[bytes | None] = [_KEY_BACKSPACE, None, None, _KEY_ENTER]
+    async def test_esc_cancels_then_enter(self) -> None:
+        keys: list[bytes | None] = [_KEY_ESC, None, None, _KEY_ENTER]
         with patch("rew_to_musway.prompt._read_key", _make_key_sequence(keys)):
             result = await timed_prompt("Test", 0.2)
-        # Timer would have expired at 0.2s but backspace cancelled it
+        # Timer would have expired at 0.2s but Esc cancelled it
         assert result == TimedPromptResult.ENTER
 
     @pytest.mark.asyncio
     @pytest.mark.usefixtures("_no_live", "_no_drain")
-    async def test_backspace_prevents_expiry(self) -> None:
-        # Backspace, then many Nones — timer should NOT expire
-        keys: list[bytes | None] = [_KEY_BACKSPACE, *([None] * 50), _KEY_ENTER]
+    async def test_esc_prevents_expiry(self) -> None:
+        # Esc, then many Nones — timer should NOT expire
+        keys: list[bytes | None] = [_KEY_ESC, *([None] * 50), _KEY_ENTER]
         with patch("rew_to_musway.prompt._read_key", _make_key_sequence(keys)):
             result = await timed_prompt("Test", 0.2)
         assert result == TimedPromptResult.ENTER

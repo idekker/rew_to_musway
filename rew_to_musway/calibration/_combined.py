@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from rich.console import Console
 
 if TYPE_CHECKING:
-    from rew_to_musway.amp import AmpController
+    from rew_to_musway.amp import AmpBackend
     from rew_to_musway.config import Config
     from rew_to_musway.playback._base import PlaybackStrategy
     from rew_to_musway.rew import REWController
@@ -22,7 +22,7 @@ COUNTDOWN_SECONDS = 3
 
 async def run_combined_measurements(
     config: Config,
-    amp: AmpController,
+    amp: AmpBackend,
     rew: REWController,
     playback: PlaybackStrategy,
 ) -> None:
@@ -73,7 +73,7 @@ async def run_combined_measurements(
             )
 
             # Unmute only the channels in this group, mute all others
-            await _unmute_group(amp, config, group_channels)
+            await amp.solo_channels(group_channels)
 
             # Countdown
             console.print(f"    Starting RTA in {COUNTDOWN_SECONDS} seconds...")
@@ -102,14 +102,3 @@ def _resolve_channel_names(config: Config, channel_numbers: list[int]) -> list[s
     """Return human-readable names for a list of channel numbers."""
     name_map = {ch.number: f"CH{ch.number} {ch.name}" for ch in config.channels}
     return [name_map[n] for n in channel_numbers if n in name_map]
-
-
-async def _unmute_group(
-    amp: AmpController,
-    config: Config,
-    group_channels: list[int],
-) -> None:
-    """Unmute channels in *group_channels*, mute all others."""
-    group_set = set(group_channels)
-    for ch in config.channels:
-        await amp.set_channel_mute(ch.number, muted=(ch.number not in group_set))

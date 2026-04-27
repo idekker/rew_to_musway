@@ -11,7 +11,7 @@ from rich.console import Console
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from rew_to_musway.amp import AmpController
+    from rew_to_musway.amp import AmpBackend
     from rew_to_musway.config import Config
     from rew_to_musway.playback._base import PlaybackStrategy
     from rew_to_musway.rew import REWController
@@ -24,7 +24,7 @@ COUNTDOWN_SECONDS = 3
 
 async def run_verification(
     config: Config,
-    amp: AmpController,
+    amp: AmpBackend,
     rew: REWController,
     playback: PlaybackStrategy,
     *,

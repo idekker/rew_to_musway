@@ -101,11 +101,19 @@ class AmpBackend(Protocol):
 
     async def solo_channel(self, channel: int) -> None: ...
 
+    async def solo_channels(self, channels: list[int]) -> None:
+        """Unmute *channels*, mute all others."""
+        ...
+
     async def mute_all(self) -> None: ...
 
     async def set_master_mute(self, muted: bool) -> None: ...  # noqa: FBT001
 
     async def apply(self) -> None: ...
+
+    # -- Compound operations -----------------------------------------------
+
+    async def restore_eq(self) -> None: ...
 
     # -- Query (from buffer or hardware) -----------------------------------
 
@@ -128,7 +136,6 @@ _SLOPE_MAP = {
     36: FilterSlope.DB36,
     48: FilterSlope.DB48,
 }
-
 
 # ---------------------------------------------------------------------------
 # TunestPCAmp
@@ -262,6 +269,15 @@ class TunestPCAmp:
                 self._tunest.set_channel_mute, ch.number, ch.number != channel
             )
 
+    async def solo_channels(self, channels: list[int]) -> None:
+        """Unmute *channels*, mute all others."""
+        unmute_set = set(channels)
+        logger.debug("Solo channels: %s", channels)
+        for ch in self._all_channels:
+            await self._run(
+                self._tunest.set_channel_mute, ch.number, ch.number not in unmute_set
+            )
+
     async def mute_all(self) -> None:
         """Mute all configured channels."""
         logger.debug("Muting all channels")
@@ -273,6 +289,11 @@ class TunestPCAmp:
         logger.debug("Unmuting all channels")
         for ch in self._all_channels:
             await self._run(self._tunest.set_channel_mute, ch.number, False)  # noqa: FBT003
+
+    async def set_channel_mute(self, channel: int, *, muted: bool) -> None:
+        """Mute or unmute a specific channel."""
+        logger.debug("CH%d mute: %s", channel, muted)
+        await self._run(self._tunest.set_channel_mute, channel, muted)
 
     # ------------------------------------------------------------------
     # Apply — flush buffer to hardware

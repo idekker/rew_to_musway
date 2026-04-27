@@ -4,9 +4,9 @@ rew:
   host: localhost
   port: 4735
 
-tunest_pc:
-  exe_path: "D:\\Program Files (x86)\\TUNEST PC\\TUNEST_PC_FULL.exe"
-  model: "M6"
+#tunest_pc:
+#  exe_path: "D:\\Program Files (x86)\\TUNEST PC\\TUNEST_PC_FULL.exe"
+#  model: "M6"
 
 # Manual mode config — used when tunest_pc section is absent.
 # Omit tunest_pc entirely to use manual mode.
@@ -56,6 +56,10 @@ channels:
     name: "LF"
     group: front
     finetune_loops: 2                  # iterative refinement loops after EQ matching
+    target:
+      shape: bass_limited
+      cutoff_hz: 55
+      slope_db_per_octave: 24
     highpass:
       type: linkwitz_riley
       frequency: 50
@@ -65,6 +69,10 @@ channels:
   - number: 2
     name: "RF"
     group: front
+    target:
+      shape: bass_limited
+      cutoff_hz: 55
+      slope_db_per_octave: 24
     highpass:
       type: linkwitz_riley
       frequency: 50
@@ -75,6 +83,10 @@ channels:
     name: "C"
     group: centre
     target_offset: -3.0              # dB offset applied to calculated EQ target level
+    target:
+      shape: bass_limited
+      cutoff_hz: 55
+      slope_db_per_octave: 24
     highpass:
       type: linkwitz_riley
       frequency: 300
@@ -87,6 +99,10 @@ channels:
   - number: 4
     name: "LR"
     group: rear
+    target:
+      shape: bass_limited
+      cutoff_hz: 55
+      slope_db_per_octave: 24
     highpass:
       type: linkwitz_riley
       frequency: 300
@@ -99,6 +115,10 @@ channels:
   - number: 5
     name: "RR"
     group: rear
+    target:
+      shape: bass_limited
+      cutoff_hz: 55
+      slope_db_per_octave: 24
     highpass:
       type: linkwitz_riley
       frequency: 300
@@ -111,6 +131,10 @@ channels:
   - number: 6
     name: "Sub"
     group: sub
+    target:
+      shape: subwoofer
+      cutoff_hz: 55
+      slope_db_per_octave: 24
     highpass:
       type: linkwitz_riley
       frequency: 30

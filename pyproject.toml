@@ -31,10 +31,10 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["tunest_pc*", "aiorew*", "rew_to_musway*"]
+include = ["tunest_pc*", "aiorew*", "rew_to_musway*", "musway_preset*"]
 
 [tool.ruff]
-exclude = [".venv", ".idea", ".opencode", ".research", ".github"]
+exclude = [".venv", ".idea", ".opencode", ".research", ".github", "openspec"]
 line-length = 88
 indent-width = 4
 

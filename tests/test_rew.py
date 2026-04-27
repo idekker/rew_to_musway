@@ -8,6 +8,8 @@ from uuid import UUID
 
 import pytest
 
+from aiorew import TargetShape as AioTargetShape
+from rew_to_musway.config import TargetConfig, TargetShape
 from rew_to_musway.rew import REWController
 
 if TYPE_CHECKING:
@@ -128,6 +130,44 @@ class TestEQConfiguration:
     ) -> None:
         await rew_controller.configure_equaliser(SAMPLE_UUID)
         mock_client.measurements.set_equaliser.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_configure_target_bass_limited(
+        self, rew_controller: REWController, mock_client: AsyncMock
+    ) -> None:
+        """Bass-limited target sets shape and cutoff on TargetSettings."""
+        target_cfg = TargetConfig(
+            shape=TargetShape.BASS_LIMITED,
+            cutoff_hz=55.0,
+            slope_db_per_octave=24,
+        )
+        await rew_controller.configure_target(
+            SAMPLE_UUID, target_cfg=target_cfg, target_offset=0.0
+        )
+        mock_client.measurements.set_target_settings.assert_called_once()
+        settings = mock_client.measurements.set_target_settings.call_args.args[1]
+        assert settings.shape == AioTargetShape.BASS_LIMITED
+        assert settings.bassManagementCutoffHz == 55.0
+        assert settings.bassManagementSlopedBPerOctave == 24
+
+    @pytest.mark.asyncio
+    async def test_configure_target_subwoofer(
+        self, rew_controller: REWController, mock_client: AsyncMock
+    ) -> None:
+        """Subwoofer target sets shape and cutoff on TargetSettings."""
+        target_cfg = TargetConfig(
+            shape=TargetShape.SUBWOOFER,
+            cutoff_hz=80.0,
+            slope_db_per_octave=12,
+        )
+        await rew_controller.configure_target(
+            SAMPLE_UUID, target_cfg=target_cfg, target_offset=0.0
+        )
+        mock_client.measurements.set_target_settings.assert_called_once()
+        settings = mock_client.measurements.set_target_settings.call_args.args[1]
+        assert settings.shape == AioTargetShape.SUBWOOFER
+        assert settings.bassManagementCutoffHz == 80.0
+        assert settings.bassManagementSlopedBPerOctave == 12
 
     @pytest.mark.asyncio
     async def test_configure_match_settings(

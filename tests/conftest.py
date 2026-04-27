@@ -152,6 +152,7 @@ def mock_amp() -> AsyncMock:
     amp.prepare_for_level_measurement = AsyncMock()
     amp.prepare_channel = AsyncMock()
     amp.solo_channel = AsyncMock()
+    amp.solo_channels = AsyncMock()
     amp.mute_all = AsyncMock()
     amp.unmute_all = AsyncMock()
     amp.set_master_mute = AsyncMock()

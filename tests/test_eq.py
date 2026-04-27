@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from rew_to_musway.calibration._eq import calibrate_channels, select_channels
-from rew_to_musway.config import ChannelConfig
+from rew_to_musway.config import ChannelConfig, TargetConfig, TargetShape
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -151,6 +151,44 @@ class TestCalibrateChannels:
 
         call_kwargs = mock_rew.configure_target.call_args
         assert call_kwargs.kwargs["target_offset"] == offset_db
+
+    @pytest.mark.asyncio
+    async def test_target_cfg_passed_to_configure_target(
+        self,
+        sample_config: Config,
+        mock_amp: AsyncMock,
+        mock_rew: AsyncMock,
+        mock_playback: AsyncMock,
+        tmp_path: Path,
+    ) -> None:
+        """Verify that target config (shape/cutoff/slope) is forwarded."""
+        target = TargetConfig(
+            shape=TargetShape.BASS_LIMITED,
+            cutoff_hz=55.0,
+            slope_db_per_octave=24,
+        )
+        ch = sample_config.channels[0]
+        modified = ChannelConfig(
+            number=ch.number,
+            name=ch.name,
+            group=ch.group,
+            highpass=ch.highpass,
+            lowpass=ch.lowpass,
+            target=target,
+        )
+
+        with patch("rew_to_musway.calibration._eq.asyncio.sleep"):
+            await calibrate_channels(
+                sample_config,
+                mock_amp,
+                mock_rew,
+                mock_playback,
+                tmp_path,
+                [modified],
+            )
+
+        call_kwargs = mock_rew.configure_target.call_args
+        assert call_kwargs.kwargs["target_cfg"] is target
 
 
 class TestFinetuning:

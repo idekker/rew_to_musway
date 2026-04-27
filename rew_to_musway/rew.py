@@ -23,9 +23,22 @@ from aiorew import (
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from .config import Config
+    from .config import Config, TargetConfig
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Target shape mapping (config enum string → aiorew enum)
+# ---------------------------------------------------------------------------
+
+# Import here to avoid circular import at module level; config uses only
+# basic types so this is safe inside TYPE_CHECKING for the type and here
+# for the runtime mapping via string keys.
+_TARGET_SHAPE_MAP: dict[str, TargetShape] = {
+    "full_range": TargetShape.FULL_RANGE,
+    "bass_limited": TargetShape.BASS_LIMITED,
+    "subwoofer": TargetShape.SUBWOOFER,
+}
 
 # ---------------------------------------------------------------------------
 # Smoothing lookup
@@ -215,23 +228,51 @@ class REWController:
         self,
         uuid: UUID,
         *,
+        target_cfg: TargetConfig | None = None,
         target_offset: float = 0.0,
     ) -> None:
-        """Set target shape to full range and configure house curve.
+        """Set target shape, cutoff frequencies, and house curve.
 
         Parameters
         ----------
         uuid:
             Measurement UUID.
+        target_cfg:
+            Target shape configuration from the channel config.  When
+            ``None``, defaults to full-range with no cutoff.
         target_offset:
             dB offset applied to the calculated target level.  Positive
             values raise the target (more boost), negative values lower it.
 
         """
-        # Target shape
+        # Target shape + cutoff
         target = await self.client.measurements.get_target_settings(uuid)
-        if target.shape != TargetShape.FULL_RANGE:
-            target.shape = TargetShape.FULL_RANGE
+
+        desired_shape = TargetShape.FULL_RANGE
+        if target_cfg is not None:
+            desired_shape = _TARGET_SHAPE_MAP[target_cfg.shape.value]
+
+        changed = False
+        if target.shape != desired_shape:
+            target.shape = desired_shape
+            changed = True
+
+        # Configure cutoff for bass_limited / subwoofer
+        if target_cfg is not None and desired_shape in {
+            TargetShape.BASS_LIMITED,
+            TargetShape.SUBWOOFER,
+        }:
+            target.bassManagementCutoffHz = target_cfg.cutoff_hz
+            target.bassManagementSlopedBPerOctave = target_cfg.slope_db_per_octave
+            changed = True
+            logger.debug(
+                "Target shape %s: cutoff=%.0f Hz, slope=%d dB/oct",
+                desired_shape.value,
+                target_cfg.cutoff_hz,
+                target_cfg.slope_db_per_octave,
+            )
+
+        if changed:
             await self.client.measurements.set_target_settings(uuid, target)
 
         # House curve

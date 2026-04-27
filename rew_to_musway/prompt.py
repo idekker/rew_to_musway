@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 _POLL_INTERVAL = 0.1  # seconds between keypress checks
 
 _KEY_ENTER = b"\r"
-_KEY_BACKSPACE = b"\x08"
+_KEY_ESC = b"\x1b"
 
 
 class TimedPromptResult(Enum):
@@ -65,7 +65,7 @@ def _build_panel(
         Text(message, style="bold"),
         bar,
         status,
-        Text("[Enter] Continue  [Backspace] Cancel timer", style="dim"),
+        Text("[Enter] Continue  [Esc] Cancel timer", style="dim"),
     )
     return Panel(content, expand=False)
 
@@ -76,7 +76,7 @@ async def timed_prompt(
     *,
     console: Console | None = None,
 ) -> TimedPromptResult:
-    """Show a countdown prompt with Enter/Backspace/expiry behaviour.
+    """Show a countdown prompt with Enter/Esc/expiry behaviour.
 
     Parameters
     ----------
@@ -118,7 +118,7 @@ async def timed_prompt(
                 logger.debug("Timed prompt: Enter pressed (%.1fs remaining)", remaining)
                 return TimedPromptResult.ENTER
 
-            if key == _KEY_BACKSPACE and not timer_cancelled:
+            if key == _KEY_ESC and not timer_cancelled:
                 timer_cancelled = True
                 logger.debug("Timed prompt: timer cancelled")
 

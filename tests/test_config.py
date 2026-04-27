@@ -11,6 +11,7 @@ from rew_to_musway.config import (
     FilterConfig,
     FilterType,
     PlaybackMode,
+    TargetShape,
     load_config,
 )
 from rew_to_musway.filters import compute_match_range
@@ -136,6 +137,15 @@ class TestLoadConfig:
         assert config.combined_measurements[0].name == "LF+Sub"
         assert config.combined_measurements[0].channels == [1, 6]
 
+        # Target shape parsing
+        lf = config.channels[0]
+        assert lf.target.shape == TargetShape.BASS_LIMITED
+        assert lf.target.cutoff_hz == 55.0
+        assert lf.target.slope_db_per_octave == 24
+        sub = config.channels[5]
+        assert sub.target.shape == TargetShape.SUBWOOFER
+        assert sub.target.cutoff_hz == 55.0
+
     def test_missing_file(self) -> None:
         with pytest.raises(FileNotFoundError):
             load_config("nonexistent.yaml")
@@ -169,6 +179,32 @@ class TestLoadConfig:
         # Defaults applied
         assert config.rew.port == 4735
         assert config.levels.target_spl == 75.0
+        # Target defaults to full_range when omitted
+        assert config.channels[0].target.shape == TargetShape.FULL_RANGE
+
+    def test_target_shape_parsed(self, tmp_path: Path) -> None:
+        cfg = tmp_path / "target.yaml"
+        cfg.write_text(
+            "tunest_pc:\n  exe_path: C:\\tunest.exe\n"
+            "channels:\n"
+            "  - number: 1\n    name: LF\n    group: front\n"
+            "    target:\n"
+            "      shape: bass_limited\n"
+            "      cutoff_hz: 55\n"
+            "      slope_db_per_octave: 24\n"
+            "  - number: 6\n    name: Sub\n    group: sub\n"
+            "    target:\n"
+            "      shape: subwoofer\n"
+            "      cutoff_hz: 80\n"
+            "      slope_db_per_octave: 12\n"
+        )
+        config = load_config(str(cfg))
+        assert config.channels[0].target.shape == TargetShape.BASS_LIMITED
+        assert config.channels[0].target.cutoff_hz == 55.0
+        assert config.channels[0].target.slope_db_per_octave == 24
+        assert config.channels[1].target.shape == TargetShape.SUBWOOFER
+        assert config.channels[1].target.cutoff_hz == 80.0
+        assert config.channels[1].target.slope_db_per_octave == 12
 
     def test_manual_mode_config(self, tmp_path: Path) -> None:
         cfg = tmp_path / "manual.yaml"

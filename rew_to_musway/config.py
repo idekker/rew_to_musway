@@ -25,6 +25,14 @@ class FilterType(Enum):
     LINKWITZ_RILEY = "linkwitz_riley"
 
 
+class TargetShape(Enum):
+    """EQ target shape for a channel — maps to aiorew.TargetShape."""
+
+    FULL_RANGE = "full_range"
+    BASS_LIMITED = "bass_limited"
+    SUBWOOFER = "subwoofer"
+
+
 # ---------------------------------------------------------------------------
 # Config dataclasses
 # ---------------------------------------------------------------------------
@@ -111,12 +119,27 @@ class FilterConfig:
 
 
 @dataclass
+class TargetConfig:
+    """EQ target shape settings for a channel.
+
+    ``shape`` selects the REW target curve type.  For ``bass_limited`` and
+    ``subwoofer``, ``cutoff_hz`` and ``slope_db_per_octave`` define the
+    bass-management rolloff.  For ``full_range`` these are ignored.
+    """
+
+    shape: TargetShape = TargetShape.FULL_RANGE
+    cutoff_hz: float = 80.0
+    slope_db_per_octave: int = 24
+
+
+@dataclass
 class ChannelConfig:
     number: int = 1
     name: str = ""
     group: str = "front"
     highpass: FilterConfig | None = None
     lowpass: FilterConfig | None = None
+    target: TargetConfig = field(default_factory=TargetConfig)
     match_range: tuple[float, float] | None = None  # manual override
     target_offset: float = 0.0  # dB offset applied to calculated target level
     finetune_loops: int = 0  # number of iterative refinement loops after phase 2
@@ -163,6 +186,16 @@ def _parse_filter(data: dict[str, Any] | None) -> FilterConfig | None:
         type=FilterType(data.get("type", "linkwitz_riley")),
         frequency=int(data.get("frequency", 80)),
         slope=int(data.get("slope", 24)),
+    )
+
+
+def _parse_target(data: dict[str, Any] | None) -> TargetConfig:
+    if data is None:
+        return TargetConfig()
+    return TargetConfig(
+        shape=TargetShape(data.get("shape", "full_range")),
+        cutoff_hz=float(data.get("cutoff_hz", 80.0)),
+        slope_db_per_octave=int(data.get("slope_db_per_octave", 24)),
     )
 
 
@@ -217,6 +250,7 @@ def _parse_channel(data: dict[str, Any]) -> ChannelConfig:
         group=str(data.get("group", "front")),
         highpass=_parse_filter(data.get("highpass")),
         lowpass=_parse_filter(data.get("lowpass")),
+        target=_parse_target(data.get("target")),
         match_range=match_range,
         target_offset=float(data.get("target_offset", 0.0)),
         finetune_loops=int(data.get("finetune_loops", 0)),

@@ -74,7 +74,7 @@ class TestRunCombinedMeasurements:
         mock_rew: AsyncMock,
         mock_playback: AsyncMock,
     ) -> None:
-        """Only channels in the group are unmuted; others are muted."""
+        """Only channels in the group are unmuted via solo_channels."""
         config = _with_combined(
             sample_config,
             groups=[CombinedMeasurement(name="LF+Sub", channels=[1, 6])],
@@ -83,15 +83,8 @@ class TestRunCombinedMeasurements:
         with patch("rew_to_musway.calibration._combined.asyncio.sleep"):
             await run_combined_measurements(config, mock_amp, mock_rew, mock_playback)
 
-        # The first 6 set_channel_mute calls are from _unmute_group
-        # (one per configured channel); subsequent calls are from mute_all in finally.
-        num_channels = 6
-        group_calls = mock_amp.set_channel_mute.call_args_list[:num_channels]
-        mute_state = {call.args[0]: call.kwargs["muted"] for call in group_calls}
-        assert mute_state[1] is False  # LF unmuted
-        assert mute_state[6] is False  # Sub unmuted
-        assert mute_state[2] is True  # RF muted
-        assert mute_state[3] is True  # C muted
+        # solo_channels called once with the group's channel list
+        mock_amp.solo_channels.assert_called_once_with([1, 6])
 
     @pytest.mark.asyncio
     async def test_stops_noise_on_error(

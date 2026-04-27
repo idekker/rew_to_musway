@@ -23,10 +23,9 @@ console = Console()
 
 MAIN_CHOICES = [
     "Full calibration (phases 1-5)",
-    "Level balancing (phase 1)",
-    "Calibrate channels (phase 2)",
-    "Verification measurements (phase 3)",
-    "Level verification (phase 4)",
+    "Level balancing + EQ (phases 1-2)",
+    "Finetune EQ",
+    "Verification (phases 3-4)",
     "Combined measurements (phase 5)",
     "Save measurements (.mdat)",
     "Quit",
@@ -60,7 +59,8 @@ def show_status(
 
     status_text = (
         f"REW:       {rew_status}  ({config.rew.host}:{config.rew.port})\n"
-        f"Tunest PC: {amp_status}  ({config.tunest_pc.model})\n"
+        f"Amp:       {amp_status}  "
+        f"({'Manual' if config.tunest_pc is None else config.tunest_pc.model})\n"
         f"Playback:  {config.playback.mode.value}\n"
         f"Channels:  {len(config.channels)}"
     )

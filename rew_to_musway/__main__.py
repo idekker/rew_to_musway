@@ -14,18 +14,19 @@ from typing import TYPE_CHECKING
 
 from rich.console import Console
 
-from .amp import AmpController
+from .amp import AmpBackend, TunestPCAmp
 from .calibration import (
-    LevelOffsets,
-    calibrate_channels,
-    measure_levels,
+    MeasureResult,
     run_combined_measurements,
-    run_verification,
+    run_finetune_loop,
+    run_measure_loop,
+    run_verification_loop,
     save_session,
     select_channels,
-    verify_levels,
 )
+from .calibration._unified import _eligible_finetune_channels, _UnifiedContext
 from .config import Config, PlaybackMode, load_config
+from .manual_amp import ManualAmp
 from .menu import ask_channel_mode, ask_main_menu, show_status
 from .playback import ManualPlayback, REWGeneratorPlayback
 from .rew import REWController
@@ -136,6 +137,22 @@ def _create_playback(config: Config, rew: REWController) -> PlaybackStrategy:
     return ManualPlayback(rew, config.levels)
 
 
+def _create_amp_backend(config: Config, session_dir: Path) -> AmpBackend:
+    """Create the amp backend based on config."""
+    if config.tunest_pc is not None:
+        logger.info("Using TunestPC backend (automated mode)")
+        return TunestPCAmp(config)
+
+    logger.info("Using Manual backend (preset file mode)")
+    return ManualAmp(
+        default_preset_path=Path(config.manual.default_preset_path).resolve(),
+        session_dir=session_dir,
+        channels=config.channels,
+        action_timeout=float(config.manual.timers.action_timeout),
+        preset_load_timeout=float(config.manual.timers.preset_load_timeout),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Connection helpers
 # ---------------------------------------------------------------------------
@@ -174,75 +191,85 @@ async def _connect_with_retry(
 async def _dispatch_menu(  # noqa: PLR0913
     choice: str,
     config: Config,
-    amp: AmpController,
+    amp: AmpBackend,
     rew: REWController,
     playback: PlaybackStrategy,
     session_dir: Path,
     state: _SessionState,
 ) -> None:
     """Execute the user's menu choice."""
+    ctx = _UnifiedContext(
+        config=config,
+        amp=amp,
+        rew=rew,
+        playback=playback,
+        session_dir=session_dir,
+    )
+
     if choice == "Full calibration (phases 1-5)":
-        await _run_full_calibration(config, amp, rew, playback, session_dir, state)
-    elif choice == "Level balancing (phase 1)":
-        state.level_offsets = await measure_levels(config, amp, rew, playback)
-    elif choice == "Calibrate channels (phase 2)":
+        await _run_full_calibration(ctx, state)
+    elif choice == "Level balancing + EQ (phases 1-2)":
         mode, ch_num = await ask_channel_mode(config)
         channels = select_channels(config, mode, start_from=ch_num, single=ch_num)
-        state.calibrated_channels = await calibrate_channels(
-            config, amp, rew, playback, session_dir, channels
-        )
-    elif choice == "Verification measurements (phase 3)":
-        await run_verification(
-            config,
-            amp,
-            rew,
-            playback,
-            channels=state.calibrated_channels,
-        )
-    elif choice == "Level verification (phase 4)":
-        if state.level_offsets is None:
+        state.measure_result = await run_measure_loop(ctx, channels)
+    elif choice == "Finetune EQ":
+        if state.measure_result is None:
             console.print(
-                "[yellow]No baseline levels — run phase 1 first,[/yellow] "
-                "or proceeding with empty baseline."
+                "[yellow]No measurement data — run phases 1-2 first.[/yellow]"
             )
-            state.level_offsets = LevelOffsets()
-        await verify_levels(config, amp, rew, playback)
+            return
+        mode, ch_num = await ask_channel_mode(config)
+        channels = select_channels(config, mode, start_from=ch_num, single=ch_num)
+        state.finetune_iteration += 1
+        state.measure_result.predicted_uuids = await run_finetune_loop(
+            ctx,
+            channels,
+            state.measure_result.rta_uuids,
+            state.measure_result.predicted_uuids,
+            iteration=state.finetune_iteration,
+        )
+    elif choice == "Verification (phases 3-4)":
+        await run_verification_loop(ctx)
     elif choice == "Combined measurements (phase 5)":
         await run_combined_measurements(config, amp, rew, playback)
     elif choice == "Save measurements (.mdat)":
         await save_session(rew, session_dir)
 
 
-async def _run_full_calibration(  # noqa: PLR0913
-    config: Config,
-    amp: AmpController,
-    rew: REWController,
-    playback: PlaybackStrategy,
-    session_dir: Path,
+async def _run_full_calibration(
+    ctx: _UnifiedContext,
     state: _SessionState,
 ) -> None:
-    """Execute the complete 5-phase calibration pipeline."""
-    state.level_offsets = await measure_levels(config, amp, rew, playback)
+    """Execute the complete calibration pipeline using the unified flow."""
+    # Phase 1+2: measure + EQ
+    state.measure_result = await run_measure_loop(ctx)
 
-    channels = select_channels(config, "all")
-    state.calibrated_channels = await calibrate_channels(
-        config, amp, rew, playback, session_dir, channels
-    )
+    # Finetune loops — auto-determine max iterations from config
+    max_finetune = max((ch.finetune_loops for ch in ctx.config.channels), default=0)
+    for iteration in range(1, max_finetune + 1):
+        eligible = _eligible_finetune_channels(ctx.config.channels, iteration)
+        if not eligible:
+            break
+        console.print(
+            f"\n[dim]Finetune iteration {iteration}/{max_finetune} "
+            f"({len(eligible)} channels eligible)[/dim]"
+        )
+        state.measure_result.predicted_uuids = await run_finetune_loop(
+            ctx,
+            ctx.config.channels,
+            state.measure_result.rta_uuids,
+            state.measure_result.predicted_uuids,
+            iteration=iteration,
+        )
 
-    await run_verification(
-        config,
-        amp,
-        rew,
-        playback,
-        channels=state.calibrated_channels,
-    )
+    # Phase 3+4: verification
+    await run_verification_loop(ctx)
 
-    if state.level_offsets is not None:
-        await verify_levels(config, amp, rew, playback)
+    # Phase 5: combined
+    await run_combined_measurements(ctx.config, ctx.amp, ctx.rew, ctx.playback)
 
-    await run_combined_measurements(config, amp, rew, playback)
-
-    await save_session(rew, session_dir)
+    # Save
+    await save_session(ctx.rew, ctx.session_dir)
     console.print("\n[bold green]Full calibration complete![/bold green]")
 
 
@@ -255,8 +282,8 @@ class _SessionState:
     """Mutable session state shared across menu iterations."""
 
     def __init__(self) -> None:
-        self.level_offsets: LevelOffsets | None = None
-        self.calibrated_channels: list[int] | None = None
+        self.measure_result: MeasureResult | None = None
+        self.finetune_iteration: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -280,7 +307,7 @@ async def _run(config: Config, session_dir: Path) -> None:
     wakeup_task = asyncio.create_task(_wakeup())
 
     rew = REWController(config)
-    amp = AmpController(config)
+    amp = _create_amp_backend(config, session_dir)
     playback = _create_playback(config, rew)
     state = _SessionState()
 
@@ -294,8 +321,9 @@ async def _run(config: Config, session_dir: Path) -> None:
     await rew.delete_all_measurements()
     logger.info("Cleared existing REW measurements.")
 
-    if not await _connect_with_retry("Tunest PC", amp.connect):
-        console.print("[red]Cannot proceed without Tunest PC connection.[/red]")
+    # Connect amp backend (TunestPCAmp needs COM, ManualAmp is no-op)
+    if not await _connect_with_retry("Amp backend", amp.connect):
+        console.print("[red]Cannot proceed without amp connection.[/red]")
         await rew.close()
         return
 
@@ -318,7 +346,7 @@ async def _run(config: Config, session_dir: Path) -> None:
 
 async def _menu_loop(  # noqa: PLR0913
     config: Config,
-    amp: AmpController,
+    amp: AmpBackend,
     rew: REWController,
     playback: PlaybackStrategy,
     session_dir: Path,
@@ -347,7 +375,7 @@ async def _menu_loop(  # noqa: PLR0913
             console.print("[dim]Returning to main menu...[/dim]")
 
 
-async def _shutdown(config: Config, amp: AmpController, rew: REWController) -> None:
+async def _shutdown(config: Config, amp: AmpBackend, rew: REWController) -> None:
     """Perform graceful shutdown: mute, stop generator, close connections."""
     console.print("\n[dim]Cleaning up...[/dim]")
     logger.info("Shutting down...")
