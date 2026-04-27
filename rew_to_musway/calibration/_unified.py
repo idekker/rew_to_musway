@@ -267,8 +267,8 @@ async def run_finetune_loop(
 
         console.print(f"\n  Computing correction for CH{ch} ({name})...")
 
-        # Correction: predicted / measured (error curve)
-        correction = await ctx.rew.divide_measurements(prev_predicted, measured)
+        # Correction: measured / predicted (error curve)
+        correction = await ctx.rew.divide_measurements(measured, prev_predicted)
         await ctx.rew.rename_measurement(
             correction, f"{name}_finetune_{iteration}_correction"
         )
