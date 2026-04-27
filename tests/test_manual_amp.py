@@ -125,23 +125,40 @@ class TestManualAmpBuffer:
         manual_amp: ManualAmp,
         session_dir: Path,
     ) -> None:
-        # First apply → preset_initial.txt
+        # Initial phase → preset_initial.txt
         await manual_amp.set_channel_level(1, -3.0)
+        manual_amp.set_phase(PresetPhase.INITIAL)
         path1 = await manual_amp.apply()
         assert path1 is not None
         assert path1 == session_dir / "preset_initial.txt"
 
-        # Second apply → preset_eq.txt (loads from preset_initial.txt)
+        # EQ phase → preset_eq.txt (loads from preset_initial.txt)
         await manual_amp.reset_eq(1)
+        manual_amp.set_phase(PresetPhase.EQ)
         path2 = await manual_amp.apply()
         assert path2 is not None
         assert path2 == session_dir / "preset_eq.txt"
 
-        # Third apply → preset_finetune_1.txt
+        # First finetuning phase → preset_finetune_1.txt
         await manual_amp.set_channel_level(2, -1.0)
+        manual_amp.set_phase(PresetPhase.FINETUNE, iteration=1)
         path3 = await manual_amp.apply()
         assert path3 is not None
         assert path3 == session_dir / "preset_finetune_1.txt"
+
+        # Second finetuning phase → preset_finetune_2.txt
+        await manual_amp.set_channel_level(2, -1.0)
+        manual_amp.set_phase(PresetPhase.FINETUNE, iteration=2)
+        path4 = await manual_amp.apply()
+        assert path4 is not None
+        assert path4 == session_dir / "preset_finetune_2.txt"
+
+        # Verification phase → preset_verification.txt
+        await manual_amp.set_channel_level(2, -1.0)
+        manual_amp.set_phase(PresetPhase.VERIFICATION)
+        path5 = await manual_amp.apply()
+        assert path5 is not None
+        assert path5 == session_dir / "preset_verification.txt"
 
     @pytest.mark.asyncio
     @patch("rew_to_musway.manual_amp._copy_to_clipboard")

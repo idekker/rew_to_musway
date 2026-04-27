@@ -15,6 +15,7 @@ import asyncio
 import logging
 import tempfile
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
@@ -72,6 +73,15 @@ class _AmpBuffer:
         self.channels.clear()
 
 
+class PresetPhase(Enum):
+    """Calibration phase for preset file naming."""
+
+    INITIAL = auto()
+    EQ = auto()
+    FINETUNE = auto()
+    VERIFICATION = auto()
+
+
 # ---------------------------------------------------------------------------
 # AmpBackend protocol
 # ---------------------------------------------------------------------------
@@ -84,6 +94,8 @@ class AmpBackend(Protocol):
     Buffer operations accumulate state; ``apply()`` flushes them.
     Immediate operations take effect right away.
     """
+
+    def set_phase(self, phase: PresetPhase, iteration: int = 0) -> None: ...
 
     # -- Buffer operations (no side effects until apply) -------------------
 
@@ -210,6 +222,13 @@ class TunestPCAmp:
             timeout=20.0,
         )
         logger.info("Tunest PC connected.")
+
+    def set_phase(self, phase: PresetPhase, iteration: int = 0) -> None:
+        logger.debug(
+            "Setting phase to %s%s",
+            phase,
+            f", iteration: {iteration}" if iteration > 0 else "",
+        )
 
     # ------------------------------------------------------------------
     # Buffer operations

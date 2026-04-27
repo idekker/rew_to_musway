@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 
 from rich.console import Console
 
+from rew_to_musway.amp import PresetPhase
 from rew_to_musway.filters import compute_match_range
 
 from ._levels import ChannelLevel, LevelOffsets, _compute_two_stage_offsets
@@ -119,6 +120,7 @@ async def run_measure_loop(
         await ctx.amp.reset_eq(ch_cfg.number)
         await ctx.amp.set_channel_level(ch_cfg.number, -60.0)
         await ctx.amp.set_crossover(ch_cfg)
+    ctx.amp.set_phase(PresetPhase.INITIAL)
     await ctx.amp.apply()
 
     measurements: list[_ChannelMeasurements] = []
@@ -165,6 +167,7 @@ async def run_measure_loop(
         filters = await ctx.rew.get_filters(m.rta_uuid)
         await ctx.amp.set_eq_filters(ch_cfg.number, filters)
 
+    ctx.amp.set_phase(PresetPhase.EQ)
     await ctx.amp.apply()
 
     console.print(
@@ -290,6 +293,7 @@ async def run_finetune_loop(
         # Update basis for next iteration
         rta_uuids[ch] = adjusted
 
+    ctx.amp.set_phase(PresetPhase.FINETUNE, iteration)
     await ctx.amp.apply()
 
     console.print(f"\n[green]Finetune iteration {iteration} complete.[/green]")
@@ -385,6 +389,7 @@ async def run_verification_loop(
         # for ch_num, adj in adjustments.items():
         #     await ctx.amp.set_channel_level(ch_num, 0.0 + adj)
         #
+        # ctx.amp.set_phase(PresetPhase.VERIFICATION)
         # await ctx.amp.apply()
         # ruff: enable[ERA001]
     else:

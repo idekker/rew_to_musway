@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 from uuid import UUID
 
 import pytest
@@ -43,6 +43,7 @@ def _spl(value: float) -> MagicMock:
 @pytest.fixture
 def mock_amp() -> AsyncMock:
     amp = AsyncMock()
+    amp.set_phase = Mock()
     amp.set_channel_level = AsyncMock()
     amp.set_eq_filters = AsyncMock()
     amp.set_crossover = AsyncMock()

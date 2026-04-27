@@ -8,13 +8,13 @@ use timed prompts to instruct the user.
 from __future__ import annotations
 
 import logging
-from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 import win32clipboard  # pyright: ignore[reportMissingModuleSource]
 
 from musway_preset import FilterType, MuswayPreset, Slope
 
+from .amp import PresetPhase
 from .prompt import timed_prompt
 
 if TYPE_CHECKING:
@@ -61,15 +61,6 @@ def _map_slope(cfg_type: FilterConfig) -> Slope:
 # ---------------------------------------------------------------------------
 # Preset naming
 # ---------------------------------------------------------------------------
-
-
-class PresetPhase(Enum):
-    """Calibration phase for preset file naming."""
-
-    INITIAL = auto()
-    EQ = auto()
-    FINETUNE = auto()
-    VERIFICATION = auto()
 
 
 def preset_filename(phase: PresetPhase, *, iteration: int = 0) -> str:
@@ -184,6 +175,18 @@ class ManualAmp:
         self._apply_count: int = 0
         self._finetune_count: int = 0
 
+        self._phase: PresetPhase = PresetPhase.INITIAL
+        self._iteration: int = 0
+
+    def set_phase(self, phase: PresetPhase, iteration: int = 0) -> None:
+        logger.debug(
+            "Setting phase to %s%s",
+            phase,
+            f", iteration: {iteration}" if iteration > 0 else "",
+        )
+        self._phase = phase
+        self._iteration = iteration
+
     # ------------------------------------------------------------------
     # Buffer operations
     # ------------------------------------------------------------------
@@ -269,7 +272,8 @@ class ManualAmp:
             return None
 
         # Determine phase and filename
-        phase, iteration = self._next_phase()
+        phase = self._phase
+        iteration = self._iteration
 
         # Load base preset (cumulative chain)
         base = self._last_preset_path or self._default_preset_path
@@ -341,13 +345,6 @@ class ManualAmp:
         await timed_prompt(msg, self._preset_load_timeout)
 
         return out_path
-
-    def _next_phase(self) -> tuple[PresetPhase, int]:
-        """Determine the next preset phase from the apply sequence."""
-        if self._apply_count < len(_PHASE_AUTO_ORDER):
-            return _PHASE_AUTO_ORDER[self._apply_count], 0
-        self._finetune_count += 1
-        return PresetPhase.FINETUNE, self._finetune_count
 
     # ------------------------------------------------------------------
     # Compound operations
