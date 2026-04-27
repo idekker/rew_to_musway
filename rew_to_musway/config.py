@@ -31,6 +31,7 @@ class TargetShape(Enum):
     FULL_RANGE = "full_range"
     BASS_LIMITED = "bass_limited"
     SUBWOOFER = "subwoofer"
+    SPEAKER_DRIVER = "speaker_driver"
 
 
 # ---------------------------------------------------------------------------
@@ -126,13 +127,25 @@ class TargetConfig:
 
     ``shape`` selects the REW target curve type.  For ``bass_limited`` and
     ``subwoofer``, ``cutoff_hz`` and ``slope_db_per_octave`` define the
-    bass-management rolloff.  For ``full_range`` these are ignored.
+    bass-management rolloff.  ``subwoofer`` additionally supports
+    ``low_freq_cutoff_hz`` and ``low_freq_slope_db_per_octave`` for the
+    low-frequency rolloff.  For ``speaker_driver``, ``highpass_hz``,
+    ``highpass_type``, ``lowpass_hz`` and ``lowpass_type`` define the
+    driver crossover filters.  For ``full_range`` all are ignored.
     """
 
     shape: TargetShape = TargetShape.FULL_RANGE
     cutoff_hz: float = 80.0
     slope_db_per_octave: int = 24
     offset: float = 0.0  # dB offset applied to calculated target level
+    # subwoofer low-frequency rolloff
+    low_freq_cutoff_hz: float = 0.0
+    low_freq_slope_db_per_octave: int = 0
+    # speaker_driver fields
+    highpass_hz: float = 0.0
+    highpass_type: str = ""
+    lowpass_hz: float = 0.0
+    lowpass_type: str = ""
 
 
 @dataclass
@@ -199,6 +212,12 @@ def _parse_target(data: dict[str, Any] | None) -> TargetConfig:
         cutoff_hz=float(data.get("cutoff_hz", 80.0)),
         slope_db_per_octave=int(data.get("slope_db_per_octave", 24)),
         offset=float(data.get("offset", 0.0)),
+        low_freq_cutoff_hz=float(data.get("low_freq_cutoff_hz", 0.0)),
+        low_freq_slope_db_per_octave=int(data.get("low_freq_slope_db_per_octave", 0)),
+        highpass_hz=float(data.get("highpass_hz", 0.0)),
+        highpass_type=str(data.get("highpass_type", "")),
+        lowpass_hz=float(data.get("lowpass_hz", 0.0)),
+        lowpass_type=str(data.get("lowpass_type", "")),
     )
 
 

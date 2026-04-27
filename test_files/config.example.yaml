@@ -85,9 +85,11 @@ channels:
     name: "C"
     group: centre
     target:
-      shape: bass_limited
-      cutoff_hz: 55
-      slope_db_per_octave: 24
+      shape: speaker_driver
+      highpass_hz: 300
+      highpass_type: "L-R4"
+      lowpass_hz: 3500
+      lowpass_type: "L-R4"
       offset: -3.0                   # dB offset applied to calculated EQ target level
     highpass:
       type: linkwitz_riley
@@ -137,6 +139,8 @@ channels:
       shape: subwoofer
       cutoff_hz: 55
       slope_db_per_octave: 24
+      low_freq_cutoff_hz: 37
+      low_freq_slope_db_per_octave: 48
     highpass:
       type: linkwitz_riley
       frequency: 30

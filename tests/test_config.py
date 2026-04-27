@@ -206,6 +206,27 @@ class TestLoadConfig:
         assert config.channels[1].target.cutoff_hz == 80.0
         assert config.channels[1].target.slope_db_per_octave == 12
 
+    def test_target_speaker_driver_parsed(self, tmp_path: Path) -> None:
+        cfg = tmp_path / "driver.yaml"
+        cfg.write_text(
+            "tunest_pc:\n  exe_path: C:\\tunest.exe\n"
+            "channels:\n"
+            "  - number: 3\n    name: C\n    group: centre\n"
+            "    target:\n"
+            "      shape: speaker_driver\n"
+            "      highpass_hz: 300\n"
+            "      highpass_type: L-R4\n"
+            "      lowpass_hz: 3500\n"
+            "      lowpass_type: BU3\n"
+        )
+        config = load_config(str(cfg))
+        t = config.channels[0].target
+        assert t.shape == TargetShape.SPEAKER_DRIVER
+        assert t.highpass_hz == 300.0
+        assert t.highpass_type == "L-R4"
+        assert t.lowpass_hz == 3500.0
+        assert t.lowpass_type == "BU3"
+
     def test_manual_mode_config(self, tmp_path: Path) -> None:
         cfg = tmp_path / "manual.yaml"
         cfg.write_text(

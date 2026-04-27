@@ -154,11 +154,13 @@ class TestEQConfiguration:
     async def test_configure_target_subwoofer(
         self, rew_controller: REWController, mock_client: AsyncMock
     ) -> None:
-        """Subwoofer target sets shape and cutoff on TargetSettings."""
+        """Subwoofer target sets shape, cutoff, and low-freq rolloff."""
         target_cfg = TargetConfig(
             shape=TargetShape.SUBWOOFER,
             cutoff_hz=80.0,
             slope_db_per_octave=12,
+            low_freq_cutoff_hz=20.0,
+            low_freq_slope_db_per_octave=12,
         )
         await rew_controller.configure_target(
             SAMPLE_UUID, target_cfg=target_cfg, target_offset=0.0
@@ -168,6 +170,31 @@ class TestEQConfiguration:
         assert settings.shape == AioTargetShape.SUBWOOFER
         assert settings.bassManagementCutoffHz == 80.0
         assert settings.bassManagementSlopedBPerOctave == 12
+        assert settings.lowFreqCutoffHz == 20.0
+        assert settings.lowFreqSlopedBPerOctave == 12
+
+    @pytest.mark.asyncio
+    async def test_configure_target_speaker_driver(
+        self, rew_controller: REWController, mock_client: AsyncMock
+    ) -> None:
+        """Speaker driver target sets shape, HP and LP on TargetSettings."""
+        target_cfg = TargetConfig(
+            shape=TargetShape.SPEAKER_DRIVER,
+            highpass_hz=300.0,
+            highpass_type="LR24",
+            lowpass_hz=3500.0,
+            lowpass_type="BU18",
+        )
+        await rew_controller.configure_target(
+            SAMPLE_UUID, target_cfg=target_cfg, target_offset=0.0
+        )
+        mock_client.measurements.set_target_settings.assert_called_once()
+        settings = mock_client.measurements.set_target_settings.call_args.args[1]
+        assert settings.shape == AioTargetShape.DRIVER
+        assert settings.highPassCutoffHz == 300.0
+        assert settings.highPassCrossoverType == "LR24"
+        assert settings.lowPassCutoffHz == 3500.0
+        assert settings.lowPassCrossoverType == "BU18"
 
     @pytest.mark.asyncio
     async def test_configure_match_settings(

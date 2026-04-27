@@ -17,6 +17,7 @@ from aiorew import (
     RTAConfiguration,
     Smoothing,
     SPLValues,
+    TargetSettings,
     TargetShape,
 )
 
@@ -38,7 +39,52 @@ _TARGET_SHAPE_MAP: dict[str, TargetShape] = {
     "full_range": TargetShape.FULL_RANGE,
     "bass_limited": TargetShape.BASS_LIMITED,
     "subwoofer": TargetShape.SUBWOOFER,
+    "speaker_driver": TargetShape.DRIVER,
 }
+
+
+def _apply_shape_settings(
+    target: TargetSettings,
+    shape: TargetShape,
+    cfg: TargetConfig,
+) -> bool:
+    """Apply shape-specific parameters to *target*.  Return whether changed."""
+    if shape in {TargetShape.BASS_LIMITED, TargetShape.SUBWOOFER}:
+        target.bassManagementCutoffHz = cfg.cutoff_hz
+        target.bassManagementSlopedBPerOctave = cfg.slope_db_per_octave
+        logger.debug(
+            "Target shape %s: cutoff=%.0f Hz, slope=%d dB/oct",
+            shape.value,
+            cfg.cutoff_hz,
+            cfg.slope_db_per_octave,
+        )
+
+    if shape == TargetShape.SUBWOOFER and cfg.low_freq_cutoff_hz:
+        target.lowFreqCutoffHz = cfg.low_freq_cutoff_hz
+        target.lowFreqSlopedBPerOctave = cfg.low_freq_slope_db_per_octave
+        logger.debug(
+            "Target shape Subwoofer: low freq cutoff=%.0f Hz, slope=%d dB/oct",
+            cfg.low_freq_cutoff_hz,
+            cfg.low_freq_slope_db_per_octave,
+        )
+
+    if shape == TargetShape.DRIVER:
+        if cfg.highpass_hz:
+            target.highPassCutoffHz = cfg.highpass_hz
+            target.highPassCrossoverType = cfg.highpass_type
+        if cfg.lowpass_hz:
+            target.lowPassCutoffHz = cfg.lowpass_hz
+            target.lowPassCrossoverType = cfg.lowpass_type
+        logger.debug(
+            "Target shape Driver: HP=%.0f Hz (%s), LP=%.0f Hz (%s)",
+            cfg.highpass_hz,
+            cfg.highpass_type,
+            cfg.lowpass_hz,
+            cfg.lowpass_type,
+        )
+
+    return shape != TargetShape.FULL_RANGE
+
 
 # ---------------------------------------------------------------------------
 # Smoothing lookup
@@ -257,19 +303,9 @@ class REWController:
             target.shape = desired_shape
             changed = True
 
-        # Configure cutoff for bass_limited / subwoofer
-        if target_cfg is not None and desired_shape in {
-            TargetShape.BASS_LIMITED,
-            TargetShape.SUBWOOFER,
-        }:
-            target.bassManagementCutoffHz = target_cfg.cutoff_hz
-            target.bassManagementSlopedBPerOctave = target_cfg.slope_db_per_octave
-            changed = True
-            logger.debug(
-                "Target shape %s: cutoff=%.0f Hz, slope=%d dB/oct",
-                desired_shape.value,
-                target_cfg.cutoff_hz,
-                target_cfg.slope_db_per_octave,
+        if target_cfg is not None:
+            changed = (
+                _apply_shape_settings(target, desired_shape, target_cfg) or changed
             )
 
         if changed:
