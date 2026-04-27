@@ -120,43 +120,34 @@ async def run_measure_loop(
         await ctx.amp.set_channel_level(ch_cfg.number, 0.0)
         await ctx.amp.set_crossover(ch_cfg)
     await ctx.amp.apply()
-    await ctx.amp.set_master_mute(muted=False)
-
-    # Start noise
-    await ctx.playback.start_noise()
 
     measurements: list[_ChannelMeasurements] = []
 
-    try:
-        for i, ch_cfg in enumerate(channels):
-            console.print(
-                f"\n  [{i + 1}/{len(channels)}] CH{ch_cfg.number} ({ch_cfg.name})"
-            )
+    for i, ch_cfg in enumerate(channels):
+        console.print(
+            f"\n  [{i + 1}/{len(channels)}] CH{ch_cfg.number} ({ch_cfg.name})"
+        )
 
-            # Solo channel
-            await ctx.amp.solo_channel(ch_cfg.number)
+        # Solo channel
+        await ctx.amp.solo_channel(ch_cfg.number)
 
-            # Measure SPL
-            console.print("    Measuring SPL...")
-            spl = await ctx.rew.measure_spl()
-            console.print(f"    SPL: {spl.spl:.1f} dB")
+        # Measure SPL
+        console.print("    Measuring SPL...")
+        spl = await ctx.rew.measure_spl()
+        console.print(f"    SPL: {spl.spl:.1f} dB")
 
-            # Countdown + RTA
-            console.print(f"    Starting RTA in {COUNTDOWN_SECONDS}s...")
-            await _countdown()
-            console.print("    Running RTA...")
-            rta_uuid = await ctx.rew.run_rta()
+        # Countdown + RTA
+        console.print(f"    Starting RTA in {COUNTDOWN_SECONDS}s...")
+        await _countdown()
+        console.print("    Running RTA...")
+        rta_uuid = await ctx.rew.run_rta()
 
-            name = f"{ch_cfg.name}_flat"
-            await ctx.rew.rename_measurement(rta_uuid, name)
+        name = f"{ch_cfg.name}_flat"
+        await ctx.rew.rename_measurement(rta_uuid, name)
 
-            measurements.append(
-                _ChannelMeasurements(channel=ch_cfg, spl_db=spl.spl, rta_uuid=rta_uuid)
-            )
-    finally:
-        await ctx.playback.stop_noise()
-        await ctx.amp.mute_all()
-        await ctx.amp.set_master_mute(muted=True)
+        measurements.append(
+            _ChannelMeasurements(channel=ch_cfg, spl_db=spl.spl, rta_uuid=rta_uuid)
+        )
 
     # Batch compute EQ
     rta_uuids: dict[int, UUID] = {}
@@ -249,30 +240,21 @@ async def run_finetune_loop(
         f"{f', skipping {len(skipped)}' if skipped else ''})\n"
     )
 
-    # Start noise
-    await ctx.amp.set_master_mute(muted=False)
-    await ctx.playback.start_noise()
-
     measured_uuids: dict[int, UUID] = {}
 
-    try:
-        for i, ch_cfg in enumerate(eligible):
-            ch = ch_cfg.number
-            console.print(f"\n  [{i + 1}/{len(eligible)}] CH{ch} ({ch_cfg.name})")
-            await ctx.amp.solo_channel(ch)
+    for i, ch_cfg in enumerate(eligible):
+        ch = ch_cfg.number
+        console.print(f"\n  [{i + 1}/{len(eligible)}] CH{ch} ({ch_cfg.name})")
+        await ctx.amp.solo_channel(ch)
 
-            console.print(f"    Starting RTA in {COUNTDOWN_SECONDS}s...")
-            await _countdown()
-            console.print("    Running RTA...")
-            measured = await ctx.rew.run_rta()
-            await ctx.rew.rename_measurement(
-                measured, f"{ch_cfg.name}_finetune_{iteration}_measured"
-            )
-            measured_uuids[ch] = measured
-    finally:
-        await ctx.playback.stop_noise()
-        await ctx.amp.mute_all()
-        await ctx.amp.set_master_mute(muted=True)
+        console.print(f"    Starting RTA in {COUNTDOWN_SECONDS}s...")
+        await _countdown()
+        console.print("    Running RTA...")
+        measured = await ctx.rew.run_rta()
+        await ctx.rew.rename_measurement(
+            measured, f"{ch_cfg.name}_finetune_{iteration}_measured"
+        )
+        measured_uuids[ch] = measured
 
     # Batch compute corrections
     new_predicted = dict(predicted_uuids)  # preserve non-eligible entries
@@ -356,41 +338,33 @@ async def run_verification_loop(
 
     console.print("\n[bold]Phase 3+4: Combined Verification[/bold]\n")
 
-    await ctx.amp.set_master_mute(muted=False)
-    await ctx.playback.start_noise()
-
     readings: list[ChannelLevel] = []
 
-    try:
-        for i, ch_cfg in enumerate(channels):
-            ch = ch_cfg.number
-            console.print(f"\n  [{i + 1}/{len(channels)}] CH{ch} ({ch_cfg.name})")
-            await ctx.amp.solo_channel(ch)
+    for i, ch_cfg in enumerate(channels):
+        ch = ch_cfg.number
+        console.print(f"\n  [{i + 1}/{len(channels)}] CH{ch} ({ch_cfg.name})")
+        await ctx.amp.solo_channel(ch)
 
-            # SPL first (same order as measure loop)
-            console.print("    Measuring SPL...")
-            spl = await ctx.rew.measure_spl()
-            console.print(f"    SPL: {spl.spl:.1f} dB")
+        # SPL first (same order as measure loop)
+        console.print("    Measuring SPL...")
+        spl = await ctx.rew.measure_spl()
+        console.print(f"    SPL: {spl.spl:.1f} dB")
 
-            # Then RTA
-            console.print(f"    Starting RTA in {COUNTDOWN_SECONDS}s...")
-            await _countdown()
-            console.print("    Running RTA...")
-            uuid = await ctx.rew.run_rta()
-            await ctx.rew.rename_measurement(uuid, f"{ch_cfg.name}_after_eq")
+        # Then RTA
+        console.print(f"    Starting RTA in {COUNTDOWN_SECONDS}s...")
+        await _countdown()
+        console.print("    Running RTA...")
+        uuid = await ctx.rew.run_rta()
+        await ctx.rew.rename_measurement(uuid, f"{ch_cfg.name}_after_eq")
 
-            readings.append(
-                ChannelLevel(
-                    channel_number=ch,
-                    channel_name=ch_cfg.name,
-                    group=ch_cfg.group,
-                    spl_db=spl.spl,
-                )
+        readings.append(
+            ChannelLevel(
+                channel_number=ch,
+                channel_name=ch_cfg.name,
+                group=ch_cfg.group,
+                spl_db=spl.spl,
             )
-    finally:
-        await ctx.playback.stop_noise()
-        await ctx.amp.mute_all()
-        await ctx.amp.set_master_mute(muted=True)
+        )
 
     # Compute two-stage offsets (between-group + within-group L/R)
     offsets = _compute_two_stage_offsets(readings)

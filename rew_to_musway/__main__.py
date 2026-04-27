@@ -205,35 +205,46 @@ async def _dispatch_menu(  # noqa: PLR0913
         playback=playback,
         session_dir=session_dir,
     )
-
-    if choice == "Full calibration (phases 1-5)":
-        await _run_full_calibration(ctx, state)
-    elif choice == "Level balancing + EQ (phases 1-2)":
-        mode, ch_num = await ask_channel_mode(config)
-        channels = select_channels(config, mode, start_from=ch_num, single=ch_num)
-        state.measure_result = await run_measure_loop(ctx, channels)
-    elif choice == "Finetune EQ":
-        if state.measure_result is None:
-            console.print(
-                "[yellow]No measurement data — run phases 1-2 first.[/yellow]"
-            )
-            return
-        mode, ch_num = await ask_channel_mode(config)
-        channels = select_channels(config, mode, start_from=ch_num, single=ch_num)
-        state.finetune_iteration += 1
-        state.measure_result.predicted_uuids = await run_finetune_loop(
-            ctx,
-            channels,
-            state.measure_result.rta_uuids,
-            state.measure_result.predicted_uuids,
-            iteration=state.finetune_iteration,
-        )
-    elif choice == "Verification (phases 3-4)":
-        await run_verification_loop(ctx)
-    elif choice == "Combined measurements (phase 5)":
-        await run_combined_measurements(config, amp, rew, playback)
-    elif choice == "Save measurements (.mdat)":
+    if choice == "Save measurements (.mdat)":
         await save_session(rew, session_dir)
+    else:
+        await ctx.amp.set_master_mute(muted=False)
+        await ctx.playback.start_noise()
+        try:
+            if choice == "Full calibration (phases 1-5)":
+                await _run_full_calibration(ctx, state)
+            elif choice == "Level balancing + EQ (phases 1-2)":
+                mode, ch_num = await ask_channel_mode(config)
+                channels = select_channels(
+                    config, mode, start_from=ch_num, single=ch_num
+                )
+                state.measure_result = await run_measure_loop(ctx, channels)
+            elif choice == "Finetune EQ":
+                if state.measure_result is None:
+                    console.print(
+                        "[yellow]No measurement data — run phases 1-2 first.[/yellow]"
+                    )
+                    return
+                mode, ch_num = await ask_channel_mode(config)
+                channels = select_channels(
+                    config, mode, start_from=ch_num, single=ch_num
+                )
+                state.finetune_iteration += 1
+                state.measure_result.predicted_uuids = await run_finetune_loop(
+                    ctx,
+                    channels,
+                    state.measure_result.rta_uuids,
+                    state.measure_result.predicted_uuids,
+                    iteration=state.finetune_iteration,
+                )
+            elif choice == "Verification (phases 3-4)":
+                await run_verification_loop(ctx)
+            elif choice == "Combined measurements (phase 5)":
+                await run_combined_measurements(config, amp, rew)
+        finally:
+            await ctx.playback.stop_noise()
+            await ctx.amp.mute_all()
+            await ctx.amp.set_master_mute(muted=True)
 
 
 async def _run_full_calibration(
@@ -266,7 +277,7 @@ async def _run_full_calibration(
     await run_verification_loop(ctx)
 
     # Phase 5: combined
-    await run_combined_measurements(ctx.config, ctx.amp, ctx.rew, ctx.playback)
+    await run_combined_measurements(ctx.config, ctx.amp, ctx.rew)
 
     # Save
     await save_session(ctx.rew, ctx.session_dir)

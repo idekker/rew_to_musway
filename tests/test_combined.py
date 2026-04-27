@@ -21,9 +21,7 @@ class TestRunCombinedMeasurements:
     ) -> None:
         """No combined_measurements configured — should skip gracefully."""
         with patch("rew_to_musway.calibration._combined.asyncio.sleep"):
-            await run_combined_measurements(
-                sample_config, mock_amp, mock_rew, mock_playback
-            )
+            await run_combined_measurements(sample_config, mock_amp, mock_rew)
 
         mock_rew.run_rta.assert_not_called()
         mock_playback.start_noise.assert_not_called()
@@ -34,45 +32,34 @@ class TestRunCombinedMeasurements:
         sample_config: Config,
         mock_amp: AsyncMock,
         mock_rew: AsyncMock,
-        mock_playback: AsyncMock,
     ) -> None:
         """Runs RTA once per combined measurement group."""
         config = _with_combined(sample_config)
 
         with patch("rew_to_musway.calibration._combined.asyncio.sleep"):
-            await run_combined_measurements(config, mock_amp, mock_rew, mock_playback)
+            await run_combined_measurements(config, mock_amp, mock_rew)
 
         num_groups = 2
         assert mock_rew.run_rta.call_count == num_groups
         assert mock_rew.rename_measurement.call_count == num_groups
-        assert mock_playback.start_noise.call_count == 1
-        assert mock_playback.stop_noise.call_count == 1
         mock_amp.restore_eq.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_measurement_naming(
-        self,
-        sample_config: Config,
-        mock_amp: AsyncMock,
-        mock_rew: AsyncMock,
-        mock_playback: AsyncMock,
+        self, sample_config: Config, mock_amp: AsyncMock, mock_rew: AsyncMock
     ) -> None:
         """Measurements are renamed to the group name from config."""
         config = _with_combined(sample_config)
 
         with patch("rew_to_musway.calibration._combined.asyncio.sleep"):
-            await run_combined_measurements(config, mock_amp, mock_rew, mock_playback)
+            await run_combined_measurements(config, mock_amp, mock_rew)
 
         names = [call.args[1] for call in mock_rew.rename_measurement.call_args_list]
         assert names == ["LF+Sub", "LF+RF"]
 
     @pytest.mark.asyncio
     async def test_unmutes_correct_channels(
-        self,
-        sample_config: Config,
-        mock_amp: AsyncMock,
-        mock_rew: AsyncMock,
-        mock_playback: AsyncMock,
+        self, sample_config: Config, mock_amp: AsyncMock, mock_rew: AsyncMock
     ) -> None:
         """Only channels in the group are unmuted via solo_channels."""
         config = _with_combined(
@@ -81,7 +68,7 @@ class TestRunCombinedMeasurements:
         )
 
         with patch("rew_to_musway.calibration._combined.asyncio.sleep"):
-            await run_combined_measurements(config, mock_amp, mock_rew, mock_playback)
+            await run_combined_measurements(config, mock_amp, mock_rew)
 
         # solo_channels called once with the group's channel list
         mock_amp.solo_channels.assert_called_once_with([1, 6])
@@ -92,7 +79,6 @@ class TestRunCombinedMeasurements:
         sample_config: Config,
         mock_amp: AsyncMock,
         mock_rew: AsyncMock,
-        mock_playback: AsyncMock,
     ) -> None:
         """Noise is stopped even when RTA fails."""
         config = _with_combined(sample_config)
@@ -102,9 +88,7 @@ class TestRunCombinedMeasurements:
             patch("rew_to_musway.calibration._combined.asyncio.sleep"),
             pytest.raises(RuntimeError, match="RTA failed"),
         ):
-            await run_combined_measurements(config, mock_amp, mock_rew, mock_playback)
-
-        mock_playback.stop_noise.assert_called_once()
+            await run_combined_measurements(config, mock_amp, mock_rew)
 
 
 def _with_combined(

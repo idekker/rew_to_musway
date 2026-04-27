@@ -153,19 +153,6 @@ class TestMeasureLoop:
         solo_calls = [c.args[0] for c in mock_amp.solo_channel.call_args_list]
         assert solo_calls == [channels[0].number, channels[1].number]
 
-    @pytest.mark.asyncio
-    @patch("rew_to_musway.calibration._unified._countdown", new_callable=AsyncMock)
-    async def test_starts_and_stops_noise(
-        self,
-        mock_cd: AsyncMock,  # noqa: ARG002
-        ctx: _UnifiedContext,
-        mock_playback: AsyncMock,
-        sample_channels: list[ChannelConfig],
-    ) -> None:
-        await run_measure_loop(ctx, sample_channels[:2])
-        mock_playback.start_noise.assert_called_once()
-        mock_playback.stop_noise.assert_called_once()
-
 
 # ---------------------------------------------------------------------------
 # Finetune loop

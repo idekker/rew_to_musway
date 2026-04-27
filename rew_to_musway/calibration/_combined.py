@@ -11,7 +11,6 @@ from rich.console import Console
 if TYPE_CHECKING:
     from rew_to_musway.amp import AmpBackend
     from rew_to_musway.config import Config
-    from rew_to_musway.playback._base import PlaybackStrategy
     from rew_to_musway.rew import REWController
 
 logger = logging.getLogger(__name__)
@@ -21,10 +20,7 @@ COUNTDOWN_SECONDS = 3
 
 
 async def run_combined_measurements(
-    config: Config,
-    amp: AmpBackend,
-    rew: REWController,
-    playback: PlaybackStrategy,
+    config: Config, amp: AmpBackend, rew: REWController
 ) -> None:
     """Phase 5: Measure channel combinations defined in config.
 
@@ -40,8 +36,6 @@ async def run_combined_measurements(
         Amp controller.
     rew:
         REW controller.
-    playback:
-        Playback strategy.
 
     """
     groups = config.combined_measurements
@@ -58,40 +52,31 @@ async def run_combined_measurements(
 
     # EQ should be active
     await amp.restore_eq()
-    await amp.set_master_mute(muted=False)
 
-    # Start noise once for all groups
-    await playback.start_noise()
+    for i, group in enumerate(groups):
+        group_channels = [n for n in group.channels if n in channel_numbers]
+        ch_names = _resolve_channel_names(config, group_channels)
 
-    try:
-        for i, group in enumerate(groups):
-            group_channels = [n for n in group.channels if n in channel_numbers]
-            ch_names = _resolve_channel_names(config, group_channels)
+        console.print(
+            f"\n  [{i + 1}/{len(groups)}] {group.name} ({', '.join(ch_names)})..."
+        )
 
-            console.print(
-                f"\n  [{i + 1}/{len(groups)}] {group.name} ({', '.join(ch_names)})..."
-            )
+        # Unmute only the channels in this group, mute all others
+        await amp.solo_channels(group_channels)
 
-            # Unmute only the channels in this group, mute all others
-            await amp.solo_channels(group_channels)
+        # Countdown
+        console.print(f"    Starting RTA in {COUNTDOWN_SECONDS} seconds...")
+        for sec in range(COUNTDOWN_SECONDS, 0, -1):
+            console.print(f"      {sec}...")
+            await asyncio.sleep(1)
 
-            # Countdown
-            console.print(f"    Starting RTA in {COUNTDOWN_SECONDS} seconds...")
-            for sec in range(COUNTDOWN_SECONDS, 0, -1):
-                console.print(f"      {sec}...")
-                await asyncio.sleep(1)
+        # Run RTA
+        console.print("    Running RTA measurement...")
+        uuid = await rew.run_rta()
 
-            # Run RTA
-            console.print("    Running RTA measurement...")
-            uuid = await rew.run_rta()
-
-            # Rename measurement
-            await rew.rename_measurement(uuid, group.name)
-            console.print(f"    Saved as '{group.name}'")
-    finally:
-        await playback.stop_noise()
-        await amp.mute_all()
-        await amp.set_master_mute(muted=True)
+        # Rename measurement
+        await rew.rename_measurement(uuid, group.name)
+        console.print(f"    Saved as '{group.name}'")
 
     console.print(
         f"\n[green]Combined measurements complete for {len(groups)} groups.[/green]"
