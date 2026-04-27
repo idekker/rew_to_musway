@@ -23,9 +23,11 @@ paths:
 playback:
   mode: manual                       # manual | rew_generator
   output_device: "EXCL: SPDIF Interface (SABRE 24/96 DAC_DigiT)"   # only used when mode=rew_generator
-  output_channel: "L+R"             # only used when mode=rew_generator
+  output_channel: "L+R"              # only used when mode=rew_generator
   generator_signal: pink_periodic    # only used when mode=rew_generator
   generator_level: -12.0             # dBFS, only used when mode=rew_generator
+  start_noise_timeout: 30            # seconds to wait for user to start noise generator after prompt
+  spl_check_timeout: 60              # seconds to wait for user to confirm SPL is correct after prompt
 
 measurement:
   rta_averages: 10

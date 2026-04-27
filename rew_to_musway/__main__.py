@@ -134,7 +134,7 @@ def _create_playback(config: Config, rew: REWController) -> PlaybackStrategy:
     """Create the playback strategy based on config."""
     if config.playback.mode == PlaybackMode.REW_GENERATOR:
         return REWGeneratorPlayback(rew, config.playback, config.levels)
-    return ManualPlayback(rew, config.levels)
+    return ManualPlayback(rew, config.levels, config.playback)
 
 
 def _create_amp_backend(config: Config, session_dir: Path) -> AmpBackend:

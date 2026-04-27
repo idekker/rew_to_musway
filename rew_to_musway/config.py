@@ -75,6 +75,8 @@ class PlaybackConfig:
     output_channel: str | None = None
     generator_signal: str = "pink_periodic"
     generator_level: float = -12.0
+    start_noise_timeout: float = 10.0
+    spl_check_timeout: float = 30.0
 
 
 @dataclass
@@ -329,6 +331,8 @@ def load_config(path: str | Path) -> Config:
         output_channel=_optional_str(pb_raw.get("output_channel")),
         generator_signal=str(pb_raw.get("generator_signal", "pink_periodic")),
         generator_level=float(pb_raw.get("generator_level", -12.0)),
+        start_noise_timeout=float(pb_raw.get("start_noise_timeout", 10.0)),
+        spl_check_timeout=float(pb_raw.get("spl_check_timeout", 30.0)),
     )
 
     # Measurement

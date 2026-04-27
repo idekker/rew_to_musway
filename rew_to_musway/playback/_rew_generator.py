@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import questionary
 from rich.console import Console
 
-from ._base import SPLCheckSkippedError, check_spl_level
+from ._base import check_spl_level
 
 if TYPE_CHECKING:
     from rew_to_musway.config import LevelsConfig, PlaybackConfig
@@ -39,6 +39,7 @@ class REWGeneratorPlayback:
         self._playback_config = playback_config
         self._levels_config = levels_config
         self._device_configured = False
+        self._spl_check_timeout = playback_config.spl_check_timeout
 
     async def _configure_output(self) -> None:
         """Select output device and channel, prompting if not configured."""
@@ -92,10 +93,7 @@ class REWGeneratorPlayback:
         )
         await asyncio.sleep(GENERATOR_WARMUP)
 
-        try:
-            await check_spl_level(self._rew, self._levels_config)
-        except SPLCheckSkippedError:
-            console.print("[yellow]SPL check skipped.[/yellow]")
+        await check_spl_level(self._rew, self._levels_config, self._spl_check_timeout)
 
     async def stop_noise(self) -> None:
         """Stop the REW signal generator."""

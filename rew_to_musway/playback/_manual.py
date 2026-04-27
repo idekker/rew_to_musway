@@ -7,10 +7,12 @@ from typing import TYPE_CHECKING
 
 from rich.console import Console
 
-from ._base import SPLCheckSkippedError, check_spl_level, wait_for_enter
+from rew_to_musway.prompt import timed_prompt
+
+from ._base import check_spl_level, wait_for_enter
 
 if TYPE_CHECKING:
-    from rew_to_musway.config import LevelsConfig
+    from rew_to_musway.config import LevelsConfig, PlaybackConfig
     from rew_to_musway.rew import REWController
 
 logger = logging.getLogger(__name__)
@@ -24,23 +26,26 @@ class ManualPlayback:
     on the in-car infotainment system) and verifies the SPL level.
     """
 
-    def __init__(self, rew: REWController, levels_config: LevelsConfig) -> None:
+    def __init__(
+        self,
+        rew: REWController,
+        levels_config: LevelsConfig,
+        playback_config: PlaybackConfig,
+    ) -> None:
         self._rew = rew
         self._levels_config = levels_config
+        self._start_noise_timeout = playback_config.start_noise_timeout
+        self._spl_check_timeout = playback_config.spl_check_timeout
 
     async def start_noise(self) -> None:
         """Prompt user to start noise, then verify SPL level."""
-        console.print(
-            "\n[bold]Please start playing pink noise[/bold] on the infotainment system."
+        await timed_prompt(
+            "Please start playing pink noise on the infotainment system",
+            self._start_noise_timeout,
         )
-        console.print("Press [bold]Enter[/bold] when noise is playing...")
-        await wait_for_enter()
         logger.info("User confirmed noise is playing (manual mode)")
 
-        try:
-            await check_spl_level(self._rew, self._levels_config)
-        except SPLCheckSkippedError:
-            console.print("[yellow]SPL check skipped.[/yellow]")
+        await check_spl_level(self._rew, self._levels_config, self._spl_check_timeout)
 
     async def stop_noise(self) -> None:
         """Prompt user to stop noise."""

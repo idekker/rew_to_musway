@@ -8,8 +8,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from rew_to_musway.config import LevelsConfig, PlaybackConfig, PlaybackMode
-from rew_to_musway.playback._base import SPLCheckSkippedError, check_spl_level
+from rew_to_musway.config import (
+    LevelsConfig,
+    PlaybackConfig,
+    PlaybackMode,
+)
+from rew_to_musway.playback._base import check_spl_level
 from rew_to_musway.playback._manual import ManualPlayback
 from rew_to_musway.playback._rew_generator import REWGeneratorPlayback
 
@@ -38,13 +42,18 @@ def _patch_spl_loop(
         patch("rew_to_musway.playback._base.Live", autospec=True),
         patch("rew_to_musway.playback._base.asyncio.sleep"),
         patch("rew_to_musway.playback._base._poll_keypress", keypress_mock),
+        patch("rew_to_musway.playback._base.msvcrt") as mock_msvcrt,
     ):
+        mock_msvcrt.kbhit.return_value = False
         yield
 
 
 # ---------------------------------------------------------------------------
 # SPL check loop
 # ---------------------------------------------------------------------------
+
+
+SPL_CHECK_TIMEOUT = 30.0
 
 
 class TestCheckSPLLevel:
@@ -58,7 +67,7 @@ class TestCheckSPLLevel:
         levels = LevelsConfig(target_spl=75.0, tolerance=1.0)
 
         with _patch_spl_loop(mock_rew, [mock_spl_values(75.0)]):
-            result = await check_spl_level(mock_rew, levels)
+            result = await check_spl_level(mock_rew, levels, SPL_CHECK_TIMEOUT)
 
         expected = 75.0
         assert result == expected
@@ -75,7 +84,7 @@ class TestCheckSPLLevel:
         levels = LevelsConfig(target_spl=75.0, tolerance=1.0)
 
         with _patch_spl_loop(mock_rew, [mock_spl_values(76.0)]):
-            result = await check_spl_level(mock_rew, levels)
+            result = await check_spl_level(mock_rew, levels, SPL_CHECK_TIMEOUT)
 
         expected = 76.0
         assert result == expected
@@ -94,30 +103,29 @@ class TestCheckSPLLevel:
             [mock_spl_values(70.0)],
             keys=[b"\r"],
         ):
-            result = await check_spl_level(mock_rew, levels)
+            result = await check_spl_level(mock_rew, levels, SPL_CHECK_TIMEOUT)
 
         expected = 70.0
         assert result == expected
 
     @pytest.mark.asyncio
-    async def test_esc_raises_skipped(
+    async def test_esc_cancels_timer_then_enter_continues(
         self,
         mock_rew: AsyncMock,
         mock_spl_values: Callable[..., MagicMock],
     ) -> None:
-        """Esc key raises SPLCheckSkippedError."""
+        """Esc cancels the timer; Enter on next poll continues."""
         levels = LevelsConfig(target_spl=75.0, tolerance=1.0)
 
-        with (
-            _patch_spl_loop(
-                mock_rew,
-                [mock_spl_values(70.0)],
-                keys=[b"\x1b"],
-            ),
-            pytest.raises(SPLCheckSkippedError),
+        with _patch_spl_loop(
+            mock_rew,
+            [mock_spl_values(70.0), mock_spl_values(71.0)],
+            keys=[b"\x1b", b"\r"],
         ):
-            await check_spl_level(mock_rew, levels)
+            result = await check_spl_level(mock_rew, levels, SPL_CHECK_TIMEOUT)
 
+        expected = 71.0
+        assert result == expected
         mock_rew.spl_close.assert_called_once()
 
     @pytest.mark.asyncio
@@ -135,7 +143,7 @@ class TestCheckSPLLevel:
         levels = LevelsConfig(target_spl=75.0, tolerance=1.0)
 
         with _patch_spl_loop(mock_rew, readings):
-            result = await check_spl_level(mock_rew, levels)
+            result = await check_spl_level(mock_rew, levels, SPL_CHECK_TIMEOUT)
 
         expected_spl = 75.0
         expected_reads = 3
@@ -156,12 +164,12 @@ class TestManualPlayback:
         mock_spl_values: Callable[..., MagicMock],
     ) -> None:
         levels = LevelsConfig(target_spl=75.0, tolerance=1.0)
-        pb = ManualPlayback(mock_rew, levels)
+        pb = ManualPlayback(mock_rew, levels, PlaybackConfig())
 
         with (
             patch("rew_to_musway.playback._manual.console"),
             patch(
-                "rew_to_musway.playback._manual.wait_for_enter", new_callable=AsyncMock
+                "rew_to_musway.playback._manual.timed_prompt", new_callable=AsyncMock
             ),
             _patch_spl_loop(mock_rew, [mock_spl_values(75.0)]),
         ):
@@ -172,7 +180,7 @@ class TestManualPlayback:
     @pytest.mark.asyncio
     async def test_stop_noise_prompts_user(self, mock_rew: AsyncMock) -> None:
         levels = LevelsConfig(target_spl=75.0, tolerance=1.0)
-        pb = ManualPlayback(mock_rew, levels)
+        pb = ManualPlayback(mock_rew, levels, PlaybackConfig())
 
         with (
             patch("rew_to_musway.playback._manual.console"),
