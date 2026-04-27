@@ -13,9 +13,7 @@ from rew_to_musway.config import (
     PlaybackConfig,
     PlaybackMode,
 )
-from rew_to_musway.playback._base import check_spl_level
-from rew_to_musway.playback._manual import ManualPlayback
-from rew_to_musway.playback._rew_generator import REWGeneratorPlayback
+from rew_to_musway.playback import ManualPlayback, REWGeneratorPlayback, check_spl_level
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator

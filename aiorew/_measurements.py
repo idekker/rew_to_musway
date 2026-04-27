@@ -17,7 +17,7 @@ Covers /measurements/* endpoints:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import UUID
 
 from ._models import (
@@ -73,7 +73,7 @@ class MeasurementsClient:
     async def get(self, uuid: UUID) -> MeasurementSummary:
         """Return the summary for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}")
-        return MeasurementSummary.from_dict(data)
+        return MeasurementSummary.from_dict(cast("dict", data))
 
     async def delete(self, uuid: UUID) -> None:
         """Delete measurement *uuid*. No confirmation is requested."""
@@ -191,7 +191,7 @@ class MeasurementsClient:
             smoothing=smoothing,
             ppo=ppo,
         )
-        return FrequencyResponse.from_dict(data)
+        return FrequencyResponse.from_dict(cast("dict", data))
 
     async def get_group_delay(
         self,
@@ -211,7 +211,7 @@ class MeasurementsClient:
             smoothing=smoothing,
             ppo=ppo,
         )
-        return FrequencyResponse.from_dict(data)
+        return FrequencyResponse.from_dict(cast("dict", data))
 
     async def get_impulse_response(
         self,
@@ -244,7 +244,7 @@ class MeasurementsClient:
             windowed=windowed,
             normalised=normalised,
         )
-        return ImpulseResponse.from_dict(data)
+        return ImpulseResponse.from_dict(cast("dict", data))
 
     # ------------------------------------------------------------------
     # IR windows
@@ -256,7 +256,7 @@ class MeasurementsClient:
         Raises REWError (HTTP 400) for RTA-derived measurements.
         """
         data = await self._http.get(f"/measurements/{uuid}/ir-windows")
-        return IRWindows.from_dict(data)
+        return IRWindows.from_dict(cast("dict", data))
 
     async def set_ir_windows(self, uuid: UUID, windows: IRWindows) -> None:
         """Update the IR window settings for measurement *uuid*."""
@@ -269,7 +269,7 @@ class MeasurementsClient:
     async def get_filters(self, uuid: UUID) -> builtins.list[FilterSetting]:
         """Return the EQ filter list for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/filters")
-        return [FilterSetting.from_dict(f) for f in data]
+        return [FilterSetting.from_dict(f) for f in cast("list", data)]
 
     async def set_filters(
         self, uuid: UUID, filters: builtins.list[FilterSetting]
@@ -290,7 +290,7 @@ class MeasurementsClient:
     async def get_equaliser(self, uuid: UUID) -> Equaliser:
         """Return the equaliser selection for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/equaliser")
-        return Equaliser.from_dict(data)
+        return Equaliser.from_dict(cast("dict", data))
 
     async def set_equaliser(self, uuid: UUID, equaliser: Equaliser) -> None:
         """Set the equaliser for measurement *uuid*."""
@@ -303,7 +303,7 @@ class MeasurementsClient:
     async def get_target_settings(self, uuid: UUID) -> TargetSettings:
         """Return the EQ target shape settings for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/target-settings")
-        return TargetSettings.from_dict(data)
+        return TargetSettings.from_dict(cast("dict", data))
 
     async def set_target_settings(self, uuid: UUID, settings: TargetSettings) -> None:
         """Update the EQ target shape settings for measurement *uuid*."""
@@ -314,7 +314,7 @@ class MeasurementsClient:
     async def get_target_level(self, uuid: UUID) -> float:
         """Return the EQ target level (dB) for measurement *uuid*."""
         val = await self._http.get(f"/measurements/{uuid}/target-level")
-        return float(val)
+        return float(cast("str", val))
 
     async def set_target_level(self, uuid: UUID, level: float) -> None:
         """Set the EQ target level (dB) for measurement *uuid*."""
@@ -323,7 +323,7 @@ class MeasurementsClient:
     async def get_room_curve_settings(self, uuid: UUID) -> RoomCurveSettings:
         """Return the room curve settings for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/room-curve-settings")
-        return RoomCurveSettings.from_dict(data)
+        return RoomCurveSettings.from_dict(cast("dict", data))
 
     async def set_room_curve_settings(
         self, uuid: UUID, settings: RoomCurveSettings
@@ -345,7 +345,7 @@ class MeasurementsClient:
         The magnitude field contains SPL values; phase is absent.
         """
         data = await self._http.get(f"/measurements/{uuid}/target-response", ppo=ppo)
-        return FrequencyResponse.from_dict(data)
+        return FrequencyResponse.from_dict(cast("dict", data))
 
     async def get_eq_frequency_response(
         self, uuid: UUID, *, unit: str | None = None, ppo: int | None = None
@@ -354,17 +354,17 @@ class MeasurementsClient:
         data = await self._http.get(
             f"/measurements/{uuid}/eq/frequency-response", unit=unit, ppo=ppo
         )
-        return FrequencyResponse.from_dict(data)
+        return FrequencyResponse.from_dict(cast("dict", data))
 
     async def get_eq_group_delay(self, uuid: UUID) -> FrequencyResponse:
         """Return the predicted post-EQ group delay for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/eq/group-delay")
-        return FrequencyResponse.from_dict(data)
+        return FrequencyResponse.from_dict(cast("dict", data))
 
     async def get_eq_impulse_response(self, uuid: UUID) -> ImpulseResponse:
         """Return the predicted post-EQ impulse response for measurement *uuid*."""
         data = await self._http.get(f"/measurements/{uuid}/eq/impulse-response")
-        return ImpulseResponse.from_dict(data)
+        return ImpulseResponse.from_dict(cast("dict", data))
 
     # ------------------------------------------------------------------
     # Per-measurement commands
@@ -372,7 +372,7 @@ class MeasurementsClient:
 
     async def get_commands(self, uuid: UUID) -> builtins.list[str]:
         """Return the list of commands available for measurement *uuid*."""
-        return await self._http.get(f"/measurements/{uuid}/commands")
+        return cast("list", await self._http.get(f"/measurements/{uuid}/commands"))
 
     async def apply_smoothing(self, uuid: UUID, amount: Smoothing) -> None:
         """Apply smoothing to measurement *uuid* (e.g. '1/12', '1/3', 'None')."""
@@ -409,8 +409,8 @@ class MeasurementsClient:
         body: dict[str, Any] = {"command": command}
         if parameters:
             body["parameters"] = parameters
-        rsp = await self._http.post(f"/measurements/{uuid}/command", body)
-        command_message = rsp.get("message")
+        rsp = cast("dict", await self._http.post(f"/measurements/{uuid}/command", body))
+        command_message = rsp.get("message", "")
 
         return await self._wait_for_completion(command_message, poll_interval, timeout)
 
@@ -420,7 +420,7 @@ class MeasurementsClient:
 
     async def get_eq_commands(self) -> builtins.list[str]:
         """Return the list of EQ commands (global, not per-measurement)."""
-        return await self._http.get("/measurements/eq/commands")
+        return cast("list", await self._http.get("/measurements/eq/commands"))
 
     async def calculate_target_level(
         self,
@@ -470,10 +470,13 @@ class MeasurementsClient:
         ProcessResult with the command outcome.
 
         """
-        rsp = await self._http.post(
-            f"/measurements/{uuid}/eq/command", {"command": command}
+        rsp = cast(
+            "dict",
+            await self._http.post(
+                f"/measurements/{uuid}/eq/command", {"command": command}
+            ),
         )
-        command_message = rsp.get("message")
+        command_message = rsp.get("message", "")
 
         return await self._wait_for_completion(command_message, poll_interval, timeout)
 
@@ -483,7 +486,7 @@ class MeasurementsClient:
 
     async def get_process_commands(self) -> builtins.list[str]:
         """Return the available process-measurements command names."""
-        return await self._http.get("/measurements/process-commands")
+        return cast("list", await self._http.get("/measurements/process-commands"))
 
     async def align_spl(
         self,
@@ -564,10 +567,13 @@ class MeasurementsClient:
             )
 
         """
-        rsp = await self._http.post(
-            "/measurements/process-measurements", command.to_dict()
+        rsp = cast(
+            "dict",
+            await self._http.post(
+                "/measurements/process-measurements", command.to_dict()
+            ),
         )
-        command_message = rsp.get("message")
+        command_message = rsp.get("message", "")
 
         return await self._wait_for_completion(command_message, poll_interval, timeout)
 

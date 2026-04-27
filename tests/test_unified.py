@@ -8,10 +8,10 @@ from uuid import UUID
 
 import pytest
 
-from rew_to_musway.calibration._unified import (
+from rew_to_musway.calibration import (
     MeasureResult,
+    UnifiedContext,
     VerificationResult,
-    _UnifiedContext,
     run_finetune_loop,
     run_measure_loop,
     run_verification_loop,
@@ -88,8 +88,8 @@ def ctx(
     mock_rew: AsyncMock,
     mock_playback: AsyncMock,
     tmp_path: Path,
-) -> _UnifiedContext:
-    return _UnifiedContext(
+) -> UnifiedContext:
+    return UnifiedContext(
         config=sample_config,
         amp=mock_amp,
         rew=mock_rew,
@@ -109,7 +109,7 @@ class TestMeasureLoop:
     async def test_returns_measure_result(
         self,
         mock_cd: AsyncMock,  # noqa: ARG002
-        ctx: _UnifiedContext,
+        ctx: UnifiedContext,
         sample_channels: list[ChannelConfig],
     ) -> None:
         # Only 2 channels for simplicity
@@ -124,7 +124,7 @@ class TestMeasureLoop:
     async def test_buffers_eq_only(
         self,
         mock_cd: AsyncMock,  # noqa: ARG002
-        ctx: _UnifiedContext,
+        ctx: UnifiedContext,
         mock_amp: AsyncMock,
         sample_channels: list[ChannelConfig],
     ) -> None:
@@ -144,7 +144,7 @@ class TestMeasureLoop:
     async def test_solos_each_channel(
         self,
         mock_cd: AsyncMock,  # noqa: ARG002
-        ctx: _UnifiedContext,
+        ctx: UnifiedContext,
         mock_amp: AsyncMock,
         sample_channels: list[ChannelConfig],
     ) -> None:
@@ -165,7 +165,7 @@ class TestFinetuneLoop:
     async def test_returns_updated_predicted(
         self,
         mock_cd: AsyncMock,  # noqa: ARG002
-        ctx: _UnifiedContext,
+        ctx: UnifiedContext,
         mock_rew: AsyncMock,
         sample_channels: list[ChannelConfig],
     ) -> None:
@@ -185,7 +185,7 @@ class TestFinetuneLoop:
     async def test_buffers_eq_filters(
         self,
         mock_cd: AsyncMock,  # noqa: ARG002
-        ctx: _UnifiedContext,
+        ctx: UnifiedContext,
         mock_amp: AsyncMock,
         mock_rew: AsyncMock,
         sample_channels: list[ChannelConfig],
@@ -211,7 +211,7 @@ class TestVerificationLoop:
     async def test_returns_verification_result(
         self,
         mock_cd: AsyncMock,  # noqa: ARG002
-        ctx: _UnifiedContext,
+        ctx: UnifiedContext,
         mock_rew: AsyncMock,
         sample_channels: list[ChannelConfig],
     ) -> None:
@@ -226,7 +226,7 @@ class TestVerificationLoop:
     async def test_no_adjustments_when_balanced(
         self,
         mock_cd: AsyncMock,  # noqa: ARG002
-        ctx: _UnifiedContext,
+        ctx: UnifiedContext,
         mock_rew: AsyncMock,
         sample_channels: list[ChannelConfig],
     ) -> None:
@@ -245,7 +245,7 @@ class TestVerificationLoop:
     async def test_adjustments_when_unbalanced(
         self,
         mock_cd: AsyncMock,  # noqa: ARG002
-        ctx: _UnifiedContext,
+        ctx: UnifiedContext,
         mock_amp: AsyncMock,  # noqa: ARG002
         mock_rew: AsyncMock,
         sample_channels: list[ChannelConfig],

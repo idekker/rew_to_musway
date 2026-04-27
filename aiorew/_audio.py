@@ -34,7 +34,7 @@ Response-shape notes (confirmed against live API):
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ._models import InputCalConfig, OutputCalConfig
 
@@ -57,8 +57,8 @@ class AudioClient:
 
     async def get_driver(self) -> str:
         """Return the active audio driver name (e.g. 'Java', 'ASIO')."""
-        d = await self._http.get("/audio/driver")
-        return d["driver"]
+        d = cast("dict", await self._http.get("/audio/driver"))
+        return d.get("driver", "")
 
     async def set_driver(self, driver: str) -> None:
         """Set the active audio driver. Available choices: get_driver_types()."""
@@ -66,7 +66,7 @@ class AudioClient:
 
     async def get_driver_types(self) -> list[str]:
         """Return the list of available audio driver names."""
-        return await self._http.get("/audio/driver-types")
+        return cast("list", await self._http.get("/audio/driver-types"))
 
     # ------------------------------------------------------------------
     # Sample rate
@@ -74,8 +74,8 @@ class AudioClient:
 
     async def get_sample_rate(self) -> int:
         """Return the current sample rate in Hz."""
-        d = await self._http.get("/audio/samplerate")
-        return int(d["value"])
+        d = cast("dict", await self._http.get("/audio/samplerate"))
+        return int(d.get("value", 0))
 
     async def set_sample_rate(self, rate: int) -> None:
         """Set the sample rate. *rate* in Hz (e.g. 48000)."""
@@ -83,8 +83,8 @@ class AudioClient:
 
     async def get_sample_rates(self) -> list[int]:
         """Return the sample rates supported by the current interface."""
-        items = await self._http.get("/audio/samplerates")
-        return [int(r["value"]) for r in items]
+        items = cast("list", await self._http.get("/audio/samplerates"))
+        return [int(r.get("value", 0)) for r in items]
 
     # ------------------------------------------------------------------
     # Java - devices
@@ -92,16 +92,16 @@ class AudioClient:
 
     async def get_java_input_devices(self) -> list[str]:
         """Return available Java input device names."""
-        return await self._http.get("/audio/java/input-devices")
+        return cast("list", await self._http.get("/audio/java/input-devices"))
 
     async def get_java_output_devices(self) -> list[str]:
         """Return available Java output device names."""
-        return await self._http.get("/audio/java/output-devices")
+        return cast("list", await self._http.get("/audio/java/output-devices"))
 
     async def get_java_input_device(self) -> str:
         """Return the selected Java input device name."""
-        d = await self._http.get("/audio/java/input-device")
-        return d["device"]
+        d = cast("dict", await self._http.get("/audio/java/input-device"))
+        return d.get("device", "")
 
     async def set_java_input_device(self, device: str) -> None:
         """Select a Java input device by name."""
@@ -109,8 +109,8 @@ class AudioClient:
 
     async def get_java_output_device(self) -> str:
         """Return the selected Java output device name."""
-        d = await self._http.get("/audio/java/output-device")
-        return d["device"]
+        d = cast("dict", await self._http.get("/audio/java/output-device"))
+        return d.get("device", "")
 
     async def set_java_output_device(self, device: str) -> None:
         """Select a Java output device by name."""
@@ -123,17 +123,17 @@ class AudioClient:
 
     async def get_java_inputs(self) -> list[str]:
         """Return available Java input names for the selected device."""
-        return await self._http.get("/audio/java/inputs")
+        return cast("list", await self._http.get("/audio/java/inputs"))
 
     async def get_java_outputs(self) -> list[str]:
         """Return available Java output names for the selected device."""
-        return await self._http.get("/audio/java/outputs")
+        return cast("list", await self._http.get("/audio/java/outputs"))
 
     async def get_java_input(self) -> str:
         """Return the selected Java input name."""
         d = await self._http.get("/audio/java/input")
         # unwrap {"input": <str>} wrapper
-        return d["input"] if isinstance(d, dict) else d
+        return d.get("input", "") if isinstance(d, dict) else str(d)
 
     async def set_java_input(self, input_name: str) -> None:
         """Select a Java input by name."""
@@ -143,7 +143,7 @@ class AudioClient:
         """Return the selected Java output name."""
         d = await self._http.get("/audio/java/output")
         # unwrap {"output": <str>} wrapper
-        return d["output"] if isinstance(d, dict) else d
+        return d.get("output", "") if isinstance(d, dict) else str(d)
 
     async def set_java_output(self, output_name: str) -> None:
         """Select a Java output by name."""
@@ -156,8 +156,8 @@ class AudioClient:
 
     async def get_java_input_channel(self) -> int:
         """Return the selected Java input channel (1-indexed)."""
-        d = await self._http.get("/audio/java/input-channel")
-        return int(d["channel"])
+        d = cast("dict", await self._http.get("/audio/java/input-channel"))
+        return int(d.get("channel", 0))
 
     async def set_java_input_channel(self, channel: int) -> None:
         """Set the Java input channel (1-indexed)."""
@@ -165,8 +165,8 @@ class AudioClient:
 
     async def get_java_ref_input_channel(self) -> int:
         """Return the timing reference / loopback input channel."""
-        d = await self._http.get("/audio/java/ref-input-channel")
-        return int(d["channel"])
+        d = cast("dict", await self._http.get("/audio/java/ref-input-channel"))
+        return int(d.get("channel", 0))
 
     async def set_java_ref_input_channel(self, channel: int) -> None:
         """Set the timing reference / loopback input channel."""
@@ -175,12 +175,12 @@ class AudioClient:
     async def get_java_output_channel(self) -> str:
         """Return the selected Java output channel (string, may be 'L+R')."""
         d = await self._http.get("/audio/java/output-channel")
-        ch = d["channel"]
+        ch = d.get("channel", "") if isinstance(d, dict) else str(d)
         return str(ch)
 
     async def get_java_output_channels(self) -> list[str]:
         """Return the selected Java output channel (string, may be 'L+R')."""
-        return await self._http.get("/audio/java/output-channels")
+        return cast("list", await self._http.get("/audio/java/output-channels"))
 
     async def set_java_output_channel(self, channel: str) -> None:
         """Set the Java output channel (e.g. '1', '2', 'L+R')."""
@@ -190,7 +190,7 @@ class AudioClient:
     async def get_java_num_input_channels(self) -> int:
         """Return the number of available Java input channels."""
         d = await self._http.get("/audio/java/num-input-channels")
-        return int(d)
+        return int(cast("str", d))
 
     # ------------------------------------------------------------------
     # ASIO - device
@@ -198,12 +198,12 @@ class AudioClient:
 
     async def get_asio_devices(self) -> list[str]:
         """Return available ASIO device names."""
-        return await self._http.get("/audio/asio/devices")
+        return cast("list", await self._http.get("/audio/asio/devices"))
 
     async def get_asio_device(self) -> str:
         """Return the selected ASIO device name."""
         d = await self._http.get("/audio/asio/device")
-        return d["device"] if isinstance(d, dict) else d
+        return d.get("device", "") if isinstance(d, dict) else str(d)
 
     async def set_asio_device(self, device: str) -> None:
         """Select an ASIO device by name."""
@@ -215,16 +215,16 @@ class AudioClient:
 
     async def get_asio_inputs(self) -> list[str]:
         """Return available ASIO input names for the selected device."""
-        return await self._http.get("/audio/asio/inputs")
+        return cast("list", await self._http.get("/audio/asio/inputs"))
 
     async def get_asio_outputs(self) -> list[str]:
         """Return available ASIO output names for the selected device."""
-        return await self._http.get("/audio/asio/outputs")
+        return cast("list", await self._http.get("/audio/asio/outputs"))
 
     async def get_asio_input(self) -> str:
         """Return the selected ASIO input name."""
         d = await self._http.get("/audio/asio/input")
-        return d["input"] if isinstance(d, dict) else d
+        return d.get("input", "") if isinstance(d, dict) else str(d)
 
     async def set_asio_input(self, input_name: str) -> None:
         """Select an ASIO input by name."""
@@ -233,7 +233,7 @@ class AudioClient:
     async def get_asio_output(self) -> str:
         """Return the selected ASIO output name."""
         d = await self._http.get("/audio/asio/output")
-        return d["output"] if isinstance(d, dict) else d
+        return d.get("output", "") if isinstance(d, dict) else str(d)
 
     async def set_asio_output(self, output_name: str) -> None:
         """Select an ASIO output by name."""
@@ -250,7 +250,7 @@ class AudioClient:
     async def get_input_cal(self) -> InputCalConfig:
         """Return the current input calibration configuration."""
         data = await self._http.get("/audio/input-cal")
-        return InputCalConfig.from_dict(data)
+        return InputCalConfig.from_dict(cast("dict", data))
 
     async def set_input_cal(self, config: InputCalConfig) -> None:
         """Update the input calibration configuration.
@@ -263,7 +263,7 @@ class AudioClient:
     async def get_output_cal(self) -> OutputCalConfig:
         """Return the current output calibration configuration."""
         data = await self._http.get("/audio/output-cal")
-        return OutputCalConfig.from_dict(data)
+        return OutputCalConfig.from_dict(cast("dict", data))
 
     async def set_output_cal(self, config: OutputCalConfig) -> None:
         """Update the output calibration configuration.

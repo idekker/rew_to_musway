@@ -3,20 +3,12 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from rich.console import Console
 
-from rew_to_musway.filters import compute_match_range
-
 if TYPE_CHECKING:
-    from pathlib import Path
-
-    from rew_to_musway.amp import AmpController
     from rew_to_musway.config import ChannelConfig, Config
-    from rew_to_musway.playback._base import PlaybackStrategy
-    from rew_to_musway.rew import REWController
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -66,47 +58,3 @@ def select_channels(
         return all_channels[idx:]
 
     return list(all_channels)
-
-
-# ---------------------------------------------------------------------------
-# Phase 2: Per-channel calibration
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class _CalibrationContext:
-    """Bundle of dependencies for the calibration loop."""
-
-    config: Config
-    amp: AmpController
-    rew: REWController
-    playback: PlaybackStrategy
-    session_dir: Path
-
-
-async def _run_eq_pipeline(
-    ctx: _CalibrationContext,
-    uuid: object,
-    ch_cfg: ChannelConfig,
-) -> object:
-    """Apply smoothing, configure equaliser/target, match, and predict.
-
-    Returns the UUID of the generated predicted measurement.
-    """
-    await ctx.rew.apply_smoothing(uuid)
-    await ctx.rew.configure_equaliser(uuid)
-    await ctx.rew.configure_target(
-        uuid, target_cfg=ch_cfg.target, target_offset=ch_cfg.target.offset
-    )
-
-    match_start, match_end = compute_match_range(
-        ch_cfg, ctx.config.eq.match_range_margin
-    )
-    console.print(f"  Match range: {match_start:.0f} - {match_end:.0f} Hz")
-    await ctx.rew.configure_match_settings(match_start, match_end)
-
-    console.print("  Matching response to target...")
-    await ctx.rew.match_target(uuid)
-
-    console.print("  Generating predicted measurement...")
-    return await ctx.rew.generate_predicted(uuid)

@@ -10,7 +10,7 @@ Covers /rta/* endpoints:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ._models import FrequencyResponse, RTAConfiguration, RTAStatus
 
@@ -61,9 +61,9 @@ class RTAClient:
         """
         await self._http.post("/rta/command", {"command": "Save current"})
 
-    async def get_commands(self) -> list:
+    async def get_commands(self) -> list[str]:
         """Return the list of available RTA command names."""
-        return await self._http.get("/rta/commands")
+        return cast("list", await self._http.get("/rta/commands"))
 
     # ------------------------------------------------------------------
     # Status
@@ -72,7 +72,7 @@ class RTAClient:
     async def get_status(self) -> RTAStatus:
         """Return the current RTA status (enabled, running)."""
         data = await self._http.get("/rta/status")
-        return RTAStatus.from_dict(data)
+        return RTAStatus.from_dict(cast("dict", data))
 
     async def wait_until_stopped(
         self,
@@ -120,7 +120,7 @@ class RTAClient:
     async def get_configuration(self) -> RTAConfiguration:
         """Return the current RTA configuration."""
         data = await self._http.get("/rta/configuration")
-        return RTAConfiguration.from_dict(data)
+        return RTAConfiguration.from_dict(cast("dict", data))
 
     async def set_configuration(self, config: RTAConfiguration) -> None:
         """Update the RTA configuration.
@@ -130,7 +130,7 @@ class RTAClient:
         first, merges the non-None fields from *config* into it, then POSTs
         the merged result.
         """
-        current = await self._http.get("/rta/configuration")
+        current = cast("dict", await self._http.get("/rta/configuration"))
         current.update(config.to_dict())
         await self._http.post("/rta/configuration", current)
 
@@ -157,7 +157,7 @@ class RTAClient:
 
         """
         data = await self._http.get("/rta/captured-data", unit=unit, index=index)
-        return FrequencyResponse.from_dict(data)
+        return FrequencyResponse.from_dict(cast("dict", data))
 
     async def get_captured_peak_data(
         self,
@@ -175,4 +175,4 @@ class RTAClient:
 
         """
         data = await self._http.get("/rta/captured-peak-data", unit=unit, index=index)
-        return FrequencyResponse.from_dict(data)
+        return FrequencyResponse.from_dict(cast("dict", data))

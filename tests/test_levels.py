@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from rew_to_musway.calibration._levels import (
+from rew_to_musway.calibration import (
     ChannelLevel,
-    _compute_two_stage_offsets,
+    compute_two_stage_offsets,
 )
 
 # ---------------------------------------------------------------------------
@@ -18,7 +18,7 @@ class TestComputeTwoStageOffsets:
             ChannelLevel(1, "LF", "front", 75.0),
             ChannelLevel(2, "RF", "front", 75.0),
         ]
-        offsets = _compute_two_stage_offsets(readings)
+        offsets = compute_two_stage_offsets(readings)
         assert offsets[1] == 0.0
         assert offsets[2] == 0.0
 
@@ -28,7 +28,7 @@ class TestComputeTwoStageOffsets:
             ChannelLevel(1, "LF", "front", 78.0),
             ChannelLevel(2, "RF", "front", 75.0),
         ]
-        offsets = _compute_two_stage_offsets(readings)
+        offsets = compute_two_stage_offsets(readings)
         # Group avg = 76.5, quietest group = 76.5 → group offset = 0
         # Within-group: ref=75, LF=75-78=-3, RF=0
         assert offsets[1] == -3.0
@@ -42,7 +42,7 @@ class TestComputeTwoStageOffsets:
             ChannelLevel(4, "LR", "rear", 77.0),
             ChannelLevel(5, "RR", "rear", 73.0),  # avg=75
         ]
-        offsets = _compute_two_stage_offsets(readings)
+        offsets = compute_two_stage_offsets(readings)
         # Group offsets = 0 for both (equal avg)
         # Front L/R: ref=74, LF=74-76=-2, RF=0
         assert offsets[1] == -2.0
@@ -59,7 +59,7 @@ class TestComputeTwoStageOffsets:
             ChannelLevel(4, "LR", "rear", 75.0),
             ChannelLevel(5, "RR", "rear", 75.0),  # avg=75
         ]
-        offsets = _compute_two_stage_offsets(readings)
+        offsets = compute_two_stage_offsets(readings)
         # Quietest group avg = 75 (rear)
         # Front group offset = 75 - 80 = -5
         # Within each group: balanced (0 L/R offset)
@@ -76,7 +76,7 @@ class TestComputeTwoStageOffsets:
             ChannelLevel(4, "LR", "rear", 75.0),
             ChannelLevel(5, "RR", "rear", 75.0),  # avg=75
         ]
-        offsets = _compute_two_stage_offsets(readings)
+        offsets = compute_two_stage_offsets(readings)
         # Quietest group avg = 75 (rear)
         # Front group offset = 75 - 80 = -5
         # Front L/R: ref=78, LF=78-82=-4, RF=0
@@ -93,7 +93,7 @@ class TestComputeTwoStageOffsets:
             ChannelLevel(2, "RF", "front", 80.0),  # avg=80
             ChannelLevel(3, "C", "centre", 75.0),  # avg=75
         ]
-        offsets = _compute_two_stage_offsets(readings)
+        offsets = compute_two_stage_offsets(readings)
         # Quietest group avg = 75 (centre)
         # Front group offset = 75 - 80 = -5
         assert offsets[1] == -5.0
@@ -110,7 +110,7 @@ class TestComputeTwoStageOffsets:
             ChannelLevel(5, "RR", "rear", 72.0),
             ChannelLevel(6, "Sub", "sub", 85.0),
         ]
-        offsets = _compute_two_stage_offsets(readings)
+        offsets = compute_two_stage_offsets(readings)
         for ch_num, offset in offsets.items():
             assert offset <= 0.0, f"CH{ch_num} offset {offset} should be ≤ 0"
 
@@ -124,7 +124,7 @@ class TestComputeTwoStageOffsets:
             ChannelLevel(5, "RR", "rear", 72.0),  # avg=71
             ChannelLevel(6, "Sub", "sub", 85.0),  # avg=85
         ]
-        offsets = _compute_two_stage_offsets(readings)
+        offsets = compute_two_stage_offsets(readings)
 
         # Quietest group = rear (avg=71)
         # Group offsets: front=71-75=-4, centre=71-80=-9, rear=0, sub=71-85=-14

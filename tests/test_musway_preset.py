@@ -7,9 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from musway_preset import MuswayPreset
-from musway_preset._channel import CrossoverFilter, FilterType, Slope
-from musway_preset._encoding import (
+from musway_preset import (
+    CrossoverFilter,
+    FilterType,
+    MuswayPreset,
+    Slope,
     decode_gain,
     decode_volume,
     encode_gain,

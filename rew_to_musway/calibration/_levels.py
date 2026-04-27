@@ -41,7 +41,7 @@ class LevelOffsets:
 # ---------------------------------------------------------------------------
 
 
-def _compute_two_stage_offsets(readings: list[ChannelLevel]) -> dict[int, float]:
+def compute_two_stage_offsets(readings: list[ChannelLevel]) -> dict[int, float]:
     """Compute per-channel level offsets in two stages.
 
     **Stage 1 — between-group offsets:** Compute the average SPL for each

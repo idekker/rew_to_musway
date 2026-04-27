@@ -8,7 +8,7 @@ only meter 1 is available; with Pro upgrade up to four meters are available.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ._models import SPLMeterConfiguration, SPLValues
 
@@ -56,7 +56,7 @@ class SPLMeterClient:
     async def get_configuration(self, meter_id: int = 1) -> SPLMeterConfiguration:
         """Return the current configuration of SPL meter *meter_id*."""
         data = await self._http.get(f"/spl-meter/{meter_id}/configuration")
-        return SPLMeterConfiguration.from_dict(data)
+        return SPLMeterConfiguration.from_dict(cast("dict", data))
 
     async def configure(
         self, meter_id: int = 1, config: SPLMeterConfiguration = None
@@ -108,7 +108,7 @@ class SPLMeterClient:
         For live monitoring, subscribe to the levels endpoint instead.
         """
         data = await self._http.get(f"/spl-meter/{meter_id}/levels")
-        return SPLValues.from_dict(data)
+        return SPLValues.from_dict(cast("dict", data))
 
     # ------------------------------------------------------------------
     # Enumeration
@@ -116,12 +116,12 @@ class SPLMeterClient:
 
     async def get_modes(self) -> list[str]:
         """Return available SPL meter modes (e.g. 'SPL', 'Leq')."""
-        return await self._http.get("/spl-meter/modes")
+        return cast("list", await self._http.get("/spl-meter/modes"))
 
     async def get_weightings(self) -> list[str]:
         """Return available SPL weightings (e.g. 'A', 'C', 'Z')."""
-        return await self._http.get("/spl-meter/weightings")
+        return cast("list", await self._http.get("/spl-meter/weightings"))
 
     async def get_filters(self) -> list[str]:
         """Return available SPL time-weighting filters (e.g. 'Fast', 'Slow')."""
-        return await self._http.get("/spl-meter/filters")
+        return cast("list", await self._http.get("/spl-meter/filters"))

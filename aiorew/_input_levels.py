@@ -5,7 +5,7 @@ Covers /input-levels/* endpoints.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ._models import InputLevels
 
@@ -38,8 +38,8 @@ class InputLevelsClient:
         (one value per channel) and the time span of the measurement.
         """
         data = await self._http.get("/input-levels/last-levels")
-        return InputLevels.from_dict(data)
+        return InputLevels.from_dict(cast("dict", data))
 
-    async def get_units(self) -> list:
+    async def get_units(self) -> list[str]:
         """Return the available unit strings for input levels (e.g. 'dBFS', 'dBV')."""
-        return await self._http.get("/input-levels/units")
+        return cast("list", await self._http.get("/input-levels/units"))

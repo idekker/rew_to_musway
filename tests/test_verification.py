@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from rew_to_musway.calibration._verification import save_session
+from rew_to_musway.calibration import save_session
 
 if TYPE_CHECKING:
     from pathlib import Path

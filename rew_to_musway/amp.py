@@ -95,6 +95,8 @@ class AmpBackend(Protocol):
     Immediate operations take effect right away.
     """
 
+    async def connect(self) -> None: ...
+
     def set_phase(self, phase: PresetPhase, iteration: int = 0) -> None: ...
 
     # -- Buffer operations (no side effects until apply) -------------------
@@ -331,7 +333,7 @@ class TunestPCAmp:
             # EQ reset
             if buf.eq_reset:
                 logger.debug("Apply CH%d reset EQ", ch_num)
-                await self._run(self._tunest._select_channel, ch_num)  # noqa: SLF001
+                await self._run(self._tunest.select_channel, ch_num)
                 await self._run(self._tunest.reset_eq, selected_only=True)
 
             # EQ filters (via JSON export + import)
@@ -457,7 +459,7 @@ class TunestPCAmp:
         """Prepare a channel for measurement (legacy compound)."""
         ch = channel_cfg.number
         logger.info("Preparing CH%d (%s) for measurement", ch, channel_cfg.name)
-        await self._run(self._tunest._select_channel, ch)  # noqa: SLF001
+        await self._run(self._tunest.select_channel, ch)
         await self._run(self._tunest.reset_eq, selected_only=True)
         await self.configure_filters(channel_cfg)
         await self.solo_channel(ch)

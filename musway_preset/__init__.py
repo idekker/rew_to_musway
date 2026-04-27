@@ -11,7 +11,12 @@ from musway_preset._channel import (
     FilterType,
     Slope,
 )
-from musway_preset._encoding import decode_volume, encode_volume
+from musway_preset._encoding import (
+    decode_gain,
+    decode_volume,
+    encode_gain,
+    encode_volume,
+)
 from musway_preset._preset import MuswayPreset
 
 __all__ = [
@@ -21,6 +26,8 @@ __all__ = [
     "FilterType",
     "MuswayPreset",
     "Slope",
+    "decode_gain",
     "decode_volume",
+    "encode_gain",
     "encode_volume",
 ]

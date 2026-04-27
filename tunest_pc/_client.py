@@ -363,7 +363,7 @@ class TunestPC:
     # Channel selection (top checkboxes, required before filter ops)
     # ------------------------------------------------------------------
 
-    def _select_channel(self, channel: int) -> None:
+    def select_channel(self, channel: int) -> None:
         """Select *channel* (1-8).
 
         Select *channel* (1-8) by clicking its header in the bottom channel
@@ -406,7 +406,7 @@ class TunestPC:
             FilterSlope enum value.
 
         """
-        self._select_channel(channel)
+        self.select_channel(channel)
         time.sleep(0.1)
 
         # Type combobox - centre of the 115x38 field
@@ -451,7 +451,7 @@ class TunestPC:
             FilterSlope enum value.
 
         """
-        self._select_channel(channel)
+        self.select_channel(channel)
         time.sleep(0.1)
 
         tc = self._get_elem_at_rel(
@@ -482,7 +482,7 @@ class TunestPC:
         Selects the channel, clicks "Import EQ", then automates the Windows
         file-open dialog to select *json_path*.
         """
-        self._select_channel(channel)
+        self.select_channel(channel)
         time.sleep(0.1)
 
         # Click the Import EQ button (named, centred within the button)

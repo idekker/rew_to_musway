@@ -105,7 +105,7 @@ class _HTTPClient:
     # HTTP verbs
     # ------------------------------------------------------------------
 
-    async def get(self, path: str, **params: Any) -> dict | None:
+    async def get(self, path: str, **params: Any) -> str | dict | list | None:
         r = await self._http().get(
             path, params={k: v for k, v in params.items() if v is not None}
         )

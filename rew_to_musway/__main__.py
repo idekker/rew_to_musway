@@ -17,6 +17,8 @@ from rich.console import Console
 from .amp import AmpBackend, TunestPCAmp
 from .calibration import (
     MeasureResult,
+    UnifiedContext,
+    eligible_finetune_channels,
     run_combined_measurements,
     run_finetune_loop,
     run_measure_loop,
@@ -24,18 +26,15 @@ from .calibration import (
     save_session,
     select_channels,
 )
-from .calibration._unified import _eligible_finetune_channels, _UnifiedContext
 from .config import Config, PlaybackMode, load_config
 from .manual_amp import ManualAmp
 from .menu import ask_channel_mode, ask_main_menu, show_status
-from .playback import ManualPlayback, REWGeneratorPlayback
+from .playback import ManualPlayback, PlaybackStrategy, REWGeneratorPlayback
 from .rew import REWController
 
 if TYPE_CHECKING:
     import types
     from collections.abc import Awaitable, Callable
-
-    from .playback._base import PlaybackStrategy
 
 from pathlib import Path
 
@@ -198,7 +197,7 @@ async def _dispatch_menu(  # noqa: PLR0913
     state: _SessionState,
 ) -> None:
     """Execute the user's menu choice."""
-    ctx = _UnifiedContext(
+    ctx = UnifiedContext(
         config=config,
         amp=amp,
         rew=rew,
@@ -248,7 +247,7 @@ async def _dispatch_menu(  # noqa: PLR0913
 
 
 async def _run_full_calibration(
-    ctx: _UnifiedContext,
+    ctx: UnifiedContext,
     state: _SessionState,
 ) -> None:
     """Execute the complete calibration pipeline using the unified flow."""
@@ -258,7 +257,7 @@ async def _run_full_calibration(
     # Finetune loops — auto-determine max iterations from config
     max_finetune = max((ch.finetune_loops for ch in ctx.config.channels), default=0)
     for iteration in range(1, max_finetune + 1):
-        eligible = _eligible_finetune_channels(ctx.config.channels, iteration)
+        eligible = eligible_finetune_channels(ctx.config.channels, iteration)
         if not eligible:
             break
         console.print(

@@ -5,7 +5,7 @@ Covers /generator/* endpoints.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from ._models import GeneratorSignal, GeneratorStatus
 
@@ -29,7 +29,7 @@ class GeneratorClient:
     async def get_status(self) -> GeneratorStatus:
         """Return the current generator status (enabled, playing, signal, level)."""
         data = await self._http.get("/generator/status")
-        return GeneratorStatus.from_dict(data)
+        return GeneratorStatus.from_dict(cast("dict", data))
 
     # ------------------------------------------------------------------
     # Signal selection
@@ -37,11 +37,11 @@ class GeneratorClient:
 
     async def get_signals(self) -> list[str]:
         """Return the list of available signal names."""
-        return await self._http.get("/generator/signals")
+        return cast("list", await self._http.get("/generator/signals"))
 
     async def get_signal(self) -> GeneratorSignal:
         """Return the currently selected signal name."""
-        d = await self._http.get("/generator/signal")
+        d = cast("dict", await self._http.get("/generator/signal"))
         return GeneratorSignal(d["signal"])
 
     async def set_signal(self, signal_name: GeneratorSignal) -> None:
@@ -57,7 +57,7 @@ class GeneratorClient:
 
         The shape of the returned dict depends on the signal type.
         """
-        return await self._http.get("/generator/signal/configuration")
+        return cast("dict", await self._http.get("/generator/signal/configuration"))
 
     async def set_signal_configuration(self, config: dict[str, Any]) -> None:
         """Update the configuration for the currently selected signal.
@@ -69,7 +69,7 @@ class GeneratorClient:
 
     async def get_signal_commands(self) -> list[str]:
         """Return the commands available for the currently selected signal."""
-        return await self._http.get("/generator/signal/commands")
+        return cast("list", await self._http.get("/generator/signal/commands"))
 
     async def send_signal_command(self, command: str) -> None:
         """Send a command to the currently selected signal (e.g. 'Next frequency')."""
@@ -84,8 +84,8 @@ class GeneratorClient:
 
         API returns {"value": <float>, "unit": "dBFS"} - the value is extracted.
         """
-        d = await self._http.get("/generator/level")
-        return float(d["value"])
+        d = cast("dict", await self._http.get("/generator/level"))
+        return float(d.get("value", 0.0))
 
     async def set_level(self, level: float, unit: str = "dBFS") -> None:
         """Set the generator output level.
@@ -102,7 +102,7 @@ class GeneratorClient:
 
     async def get_level_units(self) -> list[str]:
         """Return the available unit strings for generator level."""
-        return await self._http.get("/generator/level/units")
+        return cast("list", await self._http.get("/generator/level/units"))
 
     # ------------------------------------------------------------------
     # Frequency
@@ -114,16 +114,13 @@ class GeneratorClient:
         API returns {"unit": "Hz"} with no "value" key when the current signal
         is not a tone (e.g. pink noise) - returns None in that case.
         """
-        d = await self._http.get("/generator/frequency")
-        if isinstance(d, dict):
-            val = d.get("value")
-            return float(val) if val is not None and isinstance(val, str) else None
-        # bare scalar (future-proofing)
-        return float(d) if d is not None else None
+        d = cast("dict", await self._http.get("/generator/frequency"))
+        return d.get("value")
 
     async def set_frequency(self, frequency: float) -> None:
         """Set the generator frequency in Hz."""
-        await self._http.post("/generator/frequency", frequency)
+        data = {"value": frequency, "unit": "Hz"}
+        await self._http.post("/generator/frequency", data)
 
     # ------------------------------------------------------------------
     # Play / stop
@@ -139,4 +136,4 @@ class GeneratorClient:
 
     async def get_commands(self) -> list[str]:
         """Return the available generator start/stop command names."""
-        return await self._http.get("/generator/commands")
+        return cast("list", await self._http.get("/generator/commands"))

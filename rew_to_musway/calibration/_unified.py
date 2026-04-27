@@ -26,7 +26,7 @@ from rich.console import Console
 from rew_to_musway.amp import PresetPhase
 from rew_to_musway.filters import compute_match_range
 
-from ._levels import ChannelLevel, LevelOffsets, _compute_two_stage_offsets
+from ._levels import ChannelLevel, LevelOffsets, compute_two_stage_offsets
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
     from rew_to_musway.amp import AmpBackend
     from rew_to_musway.config import ChannelConfig, Config
-    from rew_to_musway.playback._base import PlaybackStrategy
+    from rew_to_musway.playback import PlaybackStrategy
     from rew_to_musway.rew import REWController
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class _ChannelMeasurements:
 
 
 @dataclass
-class _UnifiedContext:
+class UnifiedContext:
     """Bundle of dependencies for the unified calibration flow."""
 
     config: Config
@@ -89,7 +89,7 @@ class MeasureResult:
 
 
 async def run_measure_loop(
-    ctx: _UnifiedContext,
+    ctx: UnifiedContext,
     channels: list[ChannelConfig] | None = None,
 ) -> MeasureResult:
     """Phase 1+2: Measure SPL + RTA for each channel in a single solo pass.
@@ -185,7 +185,7 @@ async def run_measure_loop(
 # ---------------------------------------------------------------------------
 
 
-def _eligible_finetune_channels(
+def eligible_finetune_channels(
     channels: list[ChannelConfig],
     iteration: int,
 ) -> list[ChannelConfig]:
@@ -194,7 +194,7 @@ def _eligible_finetune_channels(
 
 
 async def run_finetune_loop(
-    ctx: _UnifiedContext,
+    ctx: UnifiedContext,
     channels: list[ChannelConfig],
     rta_uuids: dict[int, UUID],
     predicted_uuids: dict[int, UUID],
@@ -227,7 +227,7 @@ async def run_finetune_loop(
     Updated predicted_uuids dict.
 
     """
-    eligible = _eligible_finetune_channels(channels, iteration)
+    eligible = eligible_finetune_channels(channels, iteration)
 
     if not eligible:
         console.print(
@@ -317,7 +317,7 @@ _OFFSET_THRESHOLD_DB = 0.5
 
 
 async def run_verification_loop(
-    ctx: _UnifiedContext,
+    ctx: UnifiedContext,
     channels: list[ChannelConfig] | None = None,
 ) -> VerificationResult:
     """Phase 3+4: SPL + RTA verification in one solo pass per channel.
@@ -371,7 +371,7 @@ async def run_verification_loop(
         )
 
     # Compute two-stage offsets (between-group + within-group L/R)
-    offsets = _compute_two_stage_offsets(readings)
+    offsets = compute_two_stage_offsets(readings)
     level_offsets = LevelOffsets(readings=readings, offsets=offsets)
 
     adjustments = {
@@ -406,7 +406,7 @@ async def run_verification_loop(
 
 
 async def _run_eq_pipeline(
-    ctx: _UnifiedContext,
+    ctx: UnifiedContext,
     uuid: UUID,
     ch_cfg: ChannelConfig,
 ) -> UUID:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from rew_to_musway.calibration._eq import select_channels
+from rew_to_musway.calibration import select_channels
 
 if TYPE_CHECKING:
     from rew_to_musway.config import Config

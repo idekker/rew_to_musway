@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from rew_to_musway.calibration._combined import run_combined_measurements
+from rew_to_musway.calibration import run_combined_measurements
 from rew_to_musway.config import CombinedMeasurement, Config
 
 
