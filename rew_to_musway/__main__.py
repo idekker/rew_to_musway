@@ -14,7 +14,8 @@ from typing import TYPE_CHECKING
 
 from rich.console import Console
 
-from .amp import AmpBackend, TunestPCAmp
+from rew_to_musway.amp import ManualAmp, TunestPCAmp
+
 from .calibration import (
     MeasureResult,
     UnifiedContext,
@@ -27,7 +28,6 @@ from .calibration import (
     select_channels,
 )
 from .config import Config, PlaybackMode, load_config
-from .manual_amp import ManualAmp
 from .menu import ask_channel_mode, ask_main_menu, show_status
 from .playback import ManualPlayback, PlaybackStrategy, REWGeneratorPlayback
 from .rew import REWController
@@ -35,6 +35,8 @@ from .rew import REWController
 if TYPE_CHECKING:
     import types
     from collections.abc import Awaitable, Callable
+
+    from rew_to_musway.amp._amp_backend import AmpBackend
 
 from pathlib import Path
 

@@ -1,4 +1,4 @@
-"""manual_amp.py - ManualAmp backend for manual mode calibration.
+"""_manual_amp.py - ManualAmp backend for manual mode calibration.
 
 Implements ``AmpBackend`` by buffering DSP state and flushing it to
 Musway preset files on ``apply()``.  Immediate operations (solo, mute)
@@ -13,16 +13,14 @@ from typing import TYPE_CHECKING
 import win32clipboard  # pyright: ignore[reportMissingModuleSource]
 
 from musway_preset import FilterType, MuswayPreset, Slope
-
-from .amp import PresetPhase
-from .prompt import timed_prompt
+from rew_to_musway.amp import PresetPhase
+from rew_to_musway.prompt import timed_prompt
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from aiorew import FilterSetting
-
-    from .config import ChannelConfig, FilterConfig
+    from rew_to_musway.config import ChannelConfig, FilterConfig
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +96,7 @@ def _copy_to_clipboard(text: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Buffered channel state (reused from amp.py pattern)
+# Buffered channel state (reused from _amp_backend.py pattern)
 # ---------------------------------------------------------------------------
 
 

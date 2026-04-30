@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from rew_to_musway.manual_amp import ManualAmp, PresetPhase, preset_filename
+from rew_to_musway.amp._manual_amp import ManualAmp, PresetPhase, preset_filename
 
 if TYPE_CHECKING:
     from rew_to_musway.config import ChannelConfig
@@ -85,8 +85,8 @@ class TestManualAmpBuffer:
         assert result is None
 
     @pytest.mark.asyncio
-    @patch("rew_to_musway.manual_amp._copy_to_clipboard")
-    @patch("rew_to_musway.manual_amp.timed_prompt", new_callable=AsyncMock)
+    @patch("rew_to_musway.amp._manual_amp._copy_to_clipboard")
+    @patch("rew_to_musway.amp._manual_amp.timed_prompt", new_callable=AsyncMock)
     async def test_apply_writes_preset(
         self,
         mock_prompt: AsyncMock,  # noqa: ARG002
@@ -101,8 +101,8 @@ class TestManualAmpBuffer:
         assert result.exists()
 
     @pytest.mark.asyncio
-    @patch("rew_to_musway.manual_amp._copy_to_clipboard")
-    @patch("rew_to_musway.manual_amp.timed_prompt", new_callable=AsyncMock)
+    @patch("rew_to_musway.amp._manual_amp._copy_to_clipboard")
+    @patch("rew_to_musway.amp._manual_amp.timed_prompt", new_callable=AsyncMock)
     async def test_apply_clears_buffer(
         self,
         mock_prompt: AsyncMock,  # noqa: ARG002
@@ -116,8 +116,8 @@ class TestManualAmpBuffer:
         assert result is None
 
     @pytest.mark.asyncio
-    @patch("rew_to_musway.manual_amp._copy_to_clipboard")
-    @patch("rew_to_musway.manual_amp.timed_prompt", new_callable=AsyncMock)
+    @patch("rew_to_musway.amp._manual_amp._copy_to_clipboard")
+    @patch("rew_to_musway.amp._manual_amp.timed_prompt", new_callable=AsyncMock)
     async def test_cumulative_preset_chain(
         self,
         mock_prompt: AsyncMock,  # noqa: ARG002
@@ -161,8 +161,8 @@ class TestManualAmpBuffer:
         assert path5 == session_dir / "preset_verification.txt"
 
     @pytest.mark.asyncio
-    @patch("rew_to_musway.manual_amp._copy_to_clipboard")
-    @patch("rew_to_musway.manual_amp.timed_prompt", new_callable=AsyncMock)
+    @patch("rew_to_musway.amp._manual_amp._copy_to_clipboard")
+    @patch("rew_to_musway.amp._manual_amp.timed_prompt", new_callable=AsyncMock)
     async def test_clipboard_called_with_path(
         self,
         mock_prompt: AsyncMock,  # noqa: ARG002
@@ -183,7 +183,7 @@ class TestManualAmpBuffer:
 
 class TestManualAmpImmediate:
     @pytest.mark.asyncio
-    @patch("rew_to_musway.manual_amp.timed_prompt", new_callable=AsyncMock)
+    @patch("rew_to_musway.amp._manual_amp.timed_prompt", new_callable=AsyncMock)
     async def test_solo_channel_prompts(
         self, mock_prompt: AsyncMock, manual_amp: ManualAmp
     ) -> None:
@@ -194,7 +194,7 @@ class TestManualAmpImmediate:
         assert "CH1" in msg
 
     @pytest.mark.asyncio
-    @patch("rew_to_musway.manual_amp.timed_prompt", new_callable=AsyncMock)
+    @patch("rew_to_musway.amp._manual_amp.timed_prompt", new_callable=AsyncMock)
     async def test_mute_all_prompts(
         self, mock_prompt: AsyncMock, manual_amp: ManualAmp
     ) -> None:
@@ -203,7 +203,7 @@ class TestManualAmpImmediate:
         assert "Mute all" in mock_prompt.call_args[0][0]
 
     @pytest.mark.asyncio
-    @patch("rew_to_musway.manual_amp.timed_prompt", new_callable=AsyncMock)
+    @patch("rew_to_musway.amp._manual_amp.timed_prompt", new_callable=AsyncMock)
     async def test_master_mute_prompts(
         self, mock_prompt: AsyncMock, manual_amp: ManualAmp
     ) -> None:
@@ -212,7 +212,7 @@ class TestManualAmpImmediate:
         assert "Mute master" in mock_prompt.call_args[0][0]
 
     @pytest.mark.asyncio
-    @patch("rew_to_musway.manual_amp.timed_prompt", new_callable=AsyncMock)
+    @patch("rew_to_musway.amp._manual_amp.timed_prompt", new_callable=AsyncMock)
     async def test_master_unmute_prompts(
         self, mock_prompt: AsyncMock, manual_amp: ManualAmp
     ) -> None:

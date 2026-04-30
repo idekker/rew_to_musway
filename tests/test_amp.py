@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 @pytest.fixture
 def mock_tunest() -> MagicMock:
     """Patch TunestPC class and return the mock instance."""
-    with patch("rew_to_musway.amp.TunestPC") as cls:
+    with patch("rew_to_musway.amp._tunest_pc.TunestPC") as cls:
         instance = MagicMock()
         cls.return_value = instance
         yield instance  # type: ignore[misc]
