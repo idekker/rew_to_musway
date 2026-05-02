@@ -91,6 +91,10 @@ class ManualAmp(_MuswayPresetAmp):
         """Prompt the user to unmute the given channels."""
         await timed_prompt(msg, self._action_timeout)
 
+    async def _do_unmute_all_channels(self, msg: str) -> None:
+        """Prompt the user to unmute all channels."""
+        await timed_prompt(msg, self._action_timeout)
+
     async def _do_master_mute(self, muted: bool, msg: str) -> None:  # noqa: ARG002, FBT001
         """Prompt the user to mute/unmute master."""
         await timed_prompt(msg, self._action_timeout)

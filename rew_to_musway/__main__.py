@@ -215,8 +215,9 @@ async def _dispatch_menu(  # noqa: PLR0913
     if choice == "Save measurements (.mdat)":
         await save_session(rew, session_dir)
     else:
-        await ctx.amp.set_master_mute(muted=False)
         await ctx.playback.start_noise()
+        await ctx.amp.set_master_mute(muted=False)
+        await ctx.amp.unmute_all_channels()
         try:
             if choice == "Full calibration (phases 1-5)":
                 await _run_full_calibration(ctx, state)
@@ -248,10 +249,11 @@ async def _dispatch_menu(  # noqa: PLR0913
                 await run_verification_loop(ctx)
             elif choice == "Combined measurements (phase 5)":
                 await run_combined_measurements(config, amp, rew)
+        except Exception:
+            await ctx.amp.set_master_mute(muted=True)
+            raise
         finally:
             await ctx.playback.stop_noise()
-            await ctx.amp.mute_all()
-            await ctx.amp.set_master_mute(muted=True)
 
 
 async def _run_full_calibration(
@@ -359,7 +361,7 @@ async def _run(config: Config, session_dir: Path) -> None:
         raise
     finally:
         wakeup_task.cancel()
-        await _shutdown(config, amp, rew)
+        await _shutdown(config, rew)
 
 
 async def _menu_loop(  # noqa: PLR0913
@@ -393,17 +395,10 @@ async def _menu_loop(  # noqa: PLR0913
             console.print("[dim]Returning to main menu...[/dim]")
 
 
-async def _shutdown(config: Config, amp: AmpBackend, rew: REWController) -> None:
+async def _shutdown(config: Config, rew: REWController) -> None:
     """Perform graceful shutdown: mute, stop generator, close connections."""
     console.print("\n[dim]Cleaning up...[/dim]")
     logger.info("Shutting down...")
-
-    try:
-        await amp.mute_all()
-        await amp.set_master_mute(muted=True)
-        logger.info("All channels muted.")
-    except Exception:
-        logger.exception("Error muting channels during shutdown")
 
     try:
         if config.playback.mode == PlaybackMode.REW_GENERATOR:

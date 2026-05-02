@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING
 
 from musway import Musway
 from rew_to_musway.amp._preset_amp import _MuswayPresetAmp
-from rew_to_musway.prompt import timed_prompt
 
 if TYPE_CHECKING:
     from rew_to_musway.config import ChannelConfig, MuswayConfig
@@ -121,12 +120,11 @@ class MuswayAmp(_MuswayPresetAmp):
                     self._musway.set_channel_mute, channel=c.number, mute=True
                 )
 
+    async def _do_unmute_all_channels(self, msg: str) -> None:  # noqa: ARG002
+        """Unmute all channels via Musway UI automation."""
+        for c in self._channels:
+            await self._run(self._musway.set_channel_mute, channel=c.number, mute=False)
+
     async def _do_master_mute(self, muted: bool, msg: str) -> None:  # noqa: ARG002, FBT001
         """Mute/unmute master via Musway UI automation."""
         await self._run(self._musway.set_master_mute, mute=muted)
-
-    async def mute_all(self) -> None:
-        """Prompt user to mute all channels."""
-        msg = "Mute all channels"
-        logger.info(msg)
-        await timed_prompt(msg, self._action_timeout)

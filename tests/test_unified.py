@@ -49,7 +49,7 @@ def mock_amp() -> AsyncMock:
     amp.set_crossover = AsyncMock()
     amp.reset_eq = AsyncMock()
     amp.solo_channel = AsyncMock()
-    amp.mute_all = AsyncMock()
+    amp.unmute_all_channels = AsyncMock()
     amp.set_master_mute = AsyncMock()
     amp.apply = AsyncMock()
     return amp

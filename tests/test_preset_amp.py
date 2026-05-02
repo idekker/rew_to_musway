@@ -38,6 +38,7 @@ class _StubAmp(_MuswayPresetAmp):
         self.delivered: list[Path] = []
         self.solo_channel_calls: list[tuple[int, str]] = []
         self.solo_channels_calls: list[tuple[list[int], str]] = []
+        self.unmute_all_channels_calls: list[str] = []
         self.master_mute_calls: list[tuple[bool, str]] = []
 
     async def connect(self) -> None:
@@ -51,6 +52,9 @@ class _StubAmp(_MuswayPresetAmp):
 
     async def _do_solo_channels(self, channels: list[int], msg: str) -> None:
         self.solo_channels_calls.append((channels, msg))
+
+    async def _do_unmute_all_channels(self, msg: str) -> None:
+        self.unmute_all_channels_calls.append(msg)
 
     async def _do_master_mute(self, muted: bool, msg: str) -> None:  # noqa: FBT001
         self.master_mute_calls.append((muted, msg))
@@ -276,13 +280,13 @@ class TestMuswayPresetAmpImmediate:
         assert "CH2" in msg
 
     @pytest.mark.asyncio
-    @patch("rew_to_musway.amp._preset_amp.timed_prompt", new_callable=AsyncMock)
-    async def test_mute_all_calls_timed_prompt(
-        self, mock_prompt: AsyncMock, stub_amp: _StubAmp
+    async def test_unmute_all_channels_delegates_with_message(
+        self, stub_amp: _StubAmp
     ) -> None:
-        await stub_amp.mute_all()
-        mock_prompt.assert_called_once()
-        assert "Mute all" in mock_prompt.call_args[0][0]
+        await stub_amp.unmute_all_channels()
+        assert len(stub_amp.unmute_all_channels_calls) == 1
+        msg = stub_amp.unmute_all_channels_calls[0]
+        assert "Unmute" in msg
 
     @pytest.mark.asyncio
     async def test_master_mute_true_delegates(self, stub_amp: _StubAmp) -> None:

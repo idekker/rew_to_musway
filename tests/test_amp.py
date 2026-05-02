@@ -73,14 +73,6 @@ class TestChannelControls:
                 assert c.args[1] is True
 
     @pytest.mark.asyncio
-    async def test_mute_all(self, amp: AmpController, mock_tunest: MagicMock) -> None:
-        await amp.mute_all()
-        num_channels = 6
-        assert mock_tunest.set_channel_mute.call_count == num_channels
-        for c in mock_tunest.set_channel_mute.call_args_list:
-            assert c.args[1] is True
-
-    @pytest.mark.asyncio
     async def test_set_channel_level_buffers(
         self, amp: AmpController, mock_tunest: MagicMock
     ) -> None:

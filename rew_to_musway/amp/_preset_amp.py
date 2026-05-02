@@ -87,6 +87,7 @@ _PHASE_AUTO_ORDER: list[PresetPhase] = [
     PresetPhase.EQ,
 ]
 
+
 # ---------------------------------------------------------------------------
 # Buffered channel state
 # ---------------------------------------------------------------------------
@@ -180,6 +181,10 @@ class _MuswayPresetAmp(ABC):
         """Perform the backend-specific solo-many action."""
 
     @abstractmethod
+    async def _do_unmute_all_channels(self, msg: str) -> None:
+        """Perform the backend-specific unmute-all-channels action."""
+
+    @abstractmethod
     async def _do_master_mute(self, muted: bool, msg: str) -> None:  # noqa: FBT001
         """Perform the backend-specific master-mute action."""
 
@@ -251,11 +256,11 @@ class _MuswayPresetAmp(ABC):
         logger.info(msg)
         await self._do_solo_channels(channels, msg)
 
-    async def mute_all(self) -> None:
-        """Prompt user to mute all channels."""
-        msg = "Mute all channels"
+    async def unmute_all_channels(self) -> None:
+        """Prompt user to unmute all channels."""
+        msg = "Unmute all channels"
         logger.info(msg)
-        await timed_prompt(msg, self._action_timeout)
+        await self._do_unmute_all_channels(msg)
 
     async def set_master_mute(self, muted: bool) -> None:  # noqa: FBT001
         """Mute/unmute master — log the action then delegate to subclass hook."""

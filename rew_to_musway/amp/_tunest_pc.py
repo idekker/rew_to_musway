@@ -188,11 +188,11 @@ class TunestPCAmp:
                 self._tunest.set_channel_mute, ch.number, ch.number not in unmute_set
             )
 
-    async def mute_all(self) -> None:
-        """Mute all configured channels."""
-        logger.debug("Muting all channels")
+    async def unmute_all_channels(self) -> None:
+        """Unmute all channels."""
+        logger.debug("Unmuting all channels")
         for ch in self._all_channels:
-            await self._run(self._tunest.set_channel_mute, ch.number, True)  # noqa: FBT003
+            await self._run(self._tunest.set_channel_mute, ch.number, False)  # noqa: FBT003
 
     async def unmute_all(self) -> None:
         """Unmute all configured channels."""

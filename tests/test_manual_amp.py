@@ -183,13 +183,14 @@ class TestManualAmpImmediate:
         assert "CH1" in msg
 
     @pytest.mark.asyncio
-    @patch("rew_to_musway.amp._preset_amp.timed_prompt", new_callable=AsyncMock)
-    async def test_mute_all_prompts(
+    @patch("rew_to_musway.amp._manual_amp.timed_prompt", new_callable=AsyncMock)
+    async def test_unmute_all_channels_prompts(
         self, mock_prompt: AsyncMock, manual_amp: ManualAmp
     ) -> None:
-        await manual_amp.mute_all()
+        await manual_amp.unmute_all_channels()
         mock_prompt.assert_called_once()
-        assert "Mute all" in mock_prompt.call_args[0][0]
+        msg = mock_prompt.call_args[0][0]
+        assert "Unmute" in msg
 
     @pytest.mark.asyncio
     @patch("rew_to_musway.amp._manual_amp.timed_prompt", new_callable=AsyncMock)

@@ -191,6 +191,20 @@ class TestMuswayAmpImmediate:
                 assert c.kwargs["mute"] is True
 
     @pytest.mark.asyncio
+    async def test_unmute_all_channels(
+        self,
+        musway_amp: MuswayAmp,
+        mock_musway: MagicMock,
+        sample_channels: list[ChannelConfig],
+    ) -> None:
+        await musway_amp.unmute_all_channels()
+        calls = mock_musway.set_channel_mute.call_args_list
+        num_channels = len(sample_channels)
+        assert len(calls) == num_channels
+        for c in calls:
+            assert c.kwargs["mute"] is False
+
+    @pytest.mark.asyncio
     async def test_set_master_mute_true(
         self, musway_amp: MuswayAmp, mock_musway: MagicMock
     ) -> None:
@@ -203,16 +217,3 @@ class TestMuswayAmpImmediate:
     ) -> None:
         await musway_amp.set_master_mute(muted=False)
         mock_musway.set_master_mute.assert_called_once_with(mute=False)
-
-    @pytest.mark.asyncio
-    @patch("rew_to_musway.amp._musway.timed_prompt")
-    async def test_mute_all_calls_timed_prompt(
-        self,
-        mock_prompt: MagicMock,
-        musway_amp: MuswayAmp,
-        mock_musway: MagicMock,  # noqa: ARG002
-    ) -> None:
-        mock_prompt.return_value = None
-        await musway_amp.mute_all()
-        mock_prompt.assert_called_once()
-        assert "Mute all" in mock_prompt.call_args[0][0]
