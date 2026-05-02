@@ -17,7 +17,7 @@ from rew_to_musway.amp._preset_amp import _MuswayPresetAmp
 from rew_to_musway.prompt import timed_prompt
 
 if TYPE_CHECKING:
-    from rew_to_musway.config import ChannelConfig, ManualConfig
+    from rew_to_musway.config import ChannelConfig, ManualConfig, TimerConfig
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +55,7 @@ class ManualAmp(_MuswayPresetAmp):
         self,
         *,
         config: ManualConfig,
+        timer_config: TimerConfig,
         channels: list[ChannelConfig],
         session_dir: Path,
     ) -> None:
@@ -62,9 +63,9 @@ class ManualAmp(_MuswayPresetAmp):
             default_preset_path=Path(config.default_preset_path),
             session_dir=session_dir,
             channels=channels,
-            action_timeout=config.timers.action_timeout,
+            action_timeout=timer_config.action_timeout,
         )
-        self._preset_load_timeout = config.timers.preset_load_timeout
+        self._preset_load_timeout = timer_config.preset_load_timeout
 
     # ------------------------------------------------------------------
     # Abstract hook implementations

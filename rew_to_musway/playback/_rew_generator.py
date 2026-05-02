@@ -12,7 +12,7 @@ from rich.console import Console
 from ._base import check_spl_level
 
 if TYPE_CHECKING:
-    from rew_to_musway.config import LevelsConfig, PlaybackConfig
+    from rew_to_musway.config import LevelsConfig, PlaybackConfig, TimerConfig
     from rew_to_musway.rew import REWController
 
 logger = logging.getLogger(__name__)
@@ -34,12 +34,13 @@ class REWGeneratorPlayback:
         rew: REWController,
         playback_config: PlaybackConfig,
         levels_config: LevelsConfig,
+        timer_config: TimerConfig,
     ) -> None:
         self._rew = rew
         self._playback_config = playback_config
         self._levels_config = levels_config
         self._device_configured = False
-        self._spl_check_timeout = playback_config.spl_check_timeout
+        self._spl_check_timeout = timer_config.spl_check_timeout
 
     async def _configure_output(self) -> None:
         """Select output device and channel, prompting if not configured."""

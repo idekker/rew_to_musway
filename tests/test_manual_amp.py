@@ -42,21 +42,27 @@ def default_preset(tmp_path: Path) -> Path:
 def config(default_preset: Path) -> ManualConfig:
     return ManualConfig(
         default_preset_path=str(default_preset),
-        timers=TimerConfig(
-            action_timeout=1.0,
-            preset_load_timeout=1.0,
-        ),
+    )
+
+
+@pytest.fixture
+def timer_config() -> TimerConfig:
+    return TimerConfig(
+        action_timeout=1,
+        preset_load_timeout=1,
     )
 
 
 @pytest.fixture
 def manual_amp(
     config: ManualConfig,
+    timer_config: TimerConfig,
     session_dir: Path,
     sample_channels: list[ChannelConfig],
 ) -> ManualAmp:
     return ManualAmp(
         config=config,
+        timer_config=timer_config,
         session_dir=session_dir,
         channels=sample_channels,
     )

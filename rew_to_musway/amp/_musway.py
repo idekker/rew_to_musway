@@ -17,7 +17,7 @@ from musway import Musway
 from rew_to_musway.amp._preset_amp import _MuswayPresetAmp
 
 if TYPE_CHECKING:
-    from rew_to_musway.config import ChannelConfig, MuswayConfig
+    from rew_to_musway.config import ChannelConfig, MuswayConfig, TimerConfig
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ class MuswayAmp(_MuswayPresetAmp):
         self,
         *,
         config: MuswayConfig,
+        timer_config: TimerConfig,
         channels: list[ChannelConfig],
         session_dir: Path,
     ) -> None:
@@ -47,7 +48,7 @@ class MuswayAmp(_MuswayPresetAmp):
             default_preset_path=Path(config.default_preset_path),
             session_dir=session_dir,
             channels=channels,
-            action_timeout=config.timers.action_timeout,
+            action_timeout=timer_config.action_timeout,
         )
         self._musway = Musway()
         self._musway_path = Path(config.exe_path)

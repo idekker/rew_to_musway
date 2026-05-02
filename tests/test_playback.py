@@ -12,6 +12,7 @@ from rew_to_musway.config import (
     LevelsConfig,
     PlaybackConfig,
     PlaybackMode,
+    TimerConfig,
 )
 from rew_to_musway.playback import ManualPlayback, REWGeneratorPlayback, check_spl_level
 
@@ -162,7 +163,7 @@ class TestManualPlayback:
         mock_spl_values: Callable[..., MagicMock],
     ) -> None:
         levels = LevelsConfig(target_spl=75.0, tolerance=1.0)
-        pb = ManualPlayback(mock_rew, levels, PlaybackConfig())
+        pb = ManualPlayback(mock_rew, levels, TimerConfig())
 
         with (
             patch("rew_to_musway.playback._manual.console"),
@@ -178,7 +179,7 @@ class TestManualPlayback:
     @pytest.mark.asyncio
     async def test_stop_noise_prompts_user(self, mock_rew: AsyncMock) -> None:
         levels = LevelsConfig(target_spl=75.0, tolerance=1.0)
-        pb = ManualPlayback(mock_rew, levels, PlaybackConfig())
+        pb = ManualPlayback(mock_rew, levels, TimerConfig())
 
         with (
             patch("rew_to_musway.playback._manual.console"),
@@ -207,7 +208,7 @@ class TestREWGeneratorPlayback:
             output_channel="L+R",
         )
         levels = LevelsConfig(target_spl=75.0, tolerance=1.0)
-        pb = REWGeneratorPlayback(mock_rew, playback_cfg, levels)
+        pb = REWGeneratorPlayback(mock_rew, playback_cfg, levels, TimerConfig())
 
         with (
             patch("rew_to_musway.playback._rew_generator.console"),
@@ -227,7 +228,7 @@ class TestREWGeneratorPlayback:
             output_channel="L+R",
         )
         levels = LevelsConfig(target_spl=75.0, tolerance=1.0)
-        pb = REWGeneratorPlayback(mock_rew, playback_cfg, levels)
+        pb = REWGeneratorPlayback(mock_rew, playback_cfg, levels, TimerConfig())
 
         with patch("rew_to_musway.playback._rew_generator.console"):
             await pb.stop_noise()
@@ -247,7 +248,7 @@ class TestREWGeneratorPlayback:
             output_channel="L+R",
         )
         levels = LevelsConfig(target_spl=75.0, tolerance=1.0)
-        pb = REWGeneratorPlayback(mock_rew, playback_cfg, levels)
+        pb = REWGeneratorPlayback(mock_rew, playback_cfg, levels, TimerConfig())
 
         # Two calls — spl_read needs fresh side_effect each time
         readings_1 = [mock_spl_values(75.0)]

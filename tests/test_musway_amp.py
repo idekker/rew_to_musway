@@ -59,19 +59,27 @@ def config(default_preset: Path) -> MuswayConfig:
     return MuswayConfig(
         exe_path=str(_MUSWAY_PATH),
         default_preset_path=str(default_preset),
-        timers=TimerConfig(action_timeout=0.01),
+    )
+
+
+@pytest.fixture
+def timer_config() -> TimerConfig:
+    return TimerConfig(
+        action_timeout=1,
     )
 
 
 @pytest.fixture
 def musway_amp(
     config: MuswayConfig,
+    timer_config: TimerConfig,
     session_dir: Path,
     sample_channels: list[ChannelConfig],
     mock_musway: MagicMock,  # noqa: ARG001
 ) -> MuswayAmp:
     return MuswayAmp(
         config=config,
+        timer_config=timer_config,
         session_dir=session_dir,
         channels=sample_channels,
     )

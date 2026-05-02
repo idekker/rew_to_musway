@@ -392,7 +392,7 @@ async def _do_rts_measurements_until_spl_ok(
         if spl.spl < ctx.config.levels.target_spl - ctx.config.levels.tolerance:
             result = await timed_prompt(
                 f"Measured SPL {spl.spl:.1f} below threshold, measurement failed. Retry?",
-                timeout_seconds=10,
+                timeout_seconds=ctx.config.timer.action_timeout,
             )
             if result != TimedPromptResult.CANCELLED:
                 await ctx.rew.remove_measurement(uuid=uuid)

@@ -12,7 +12,7 @@ from rew_to_musway.prompt import timed_prompt
 from ._base import check_spl_level, wait_for_enter
 
 if TYPE_CHECKING:
-    from rew_to_musway.config import LevelsConfig, PlaybackConfig
+    from rew_to_musway.config import LevelsConfig, TimerConfig
     from rew_to_musway.rew import REWController
 
 logger = logging.getLogger(__name__)
@@ -30,12 +30,12 @@ class ManualPlayback:
         self,
         rew: REWController,
         levels_config: LevelsConfig,
-        playback_config: PlaybackConfig,
+        timer_config: TimerConfig,
     ) -> None:
         self._rew = rew
         self._levels_config = levels_config
-        self._start_noise_timeout = playback_config.start_noise_timeout
-        self._spl_check_timeout = playback_config.spl_check_timeout
+        self._start_noise_timeout = timer_config.start_noise_timeout
+        self._spl_check_timeout = timer_config.spl_check_timeout
 
     async def start_noise(self) -> None:
         """Prompt user to start noise, then verify SPL level."""

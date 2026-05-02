@@ -136,8 +136,8 @@ def _setup_logging(log_path: Path) -> None:
 def _create_playback(config: Config, rew: REWController) -> PlaybackStrategy:
     """Create the playback strategy based on config."""
     if config.playback.mode == PlaybackMode.REW_GENERATOR:
-        return REWGeneratorPlayback(rew, config.playback, config.levels)
-    return ManualPlayback(rew, config.levels, config.playback)
+        return REWGeneratorPlayback(rew, config.playback, config.levels, config.timer)
+    return ManualPlayback(rew, config.levels, config.timer)
 
 
 def _create_amp_backend(config: Config, session_dir: Path) -> AmpBackend:
@@ -150,6 +150,7 @@ def _create_amp_backend(config: Config, session_dir: Path) -> AmpBackend:
         logger.info("Using Musway backend (automated mode)")
         return MuswayAmp(
             config=config.musway,
+            timer_config=config.timer,
             channels=config.channels,
             session_dir=session_dir,
         )
@@ -157,6 +158,7 @@ def _create_amp_backend(config: Config, session_dir: Path) -> AmpBackend:
     logger.info("Using Manual backend (preset file mode)")
     return ManualAmp(
         config=config.manual,
+        timer_config=config.timer,
         channels=config.channels,
         session_dir=session_dir,
     )

@@ -55,6 +55,8 @@ class TunestPCConfig:
 class TimerConfig:
     action_timeout: int = 10
     preset_load_timeout: int = 30
+    spl_check_timeout: int = 30
+    start_noise_timeout: int = 30
 
 
 @dataclass
@@ -62,14 +64,12 @@ class MuswayConfig:
     exe_path: str = ""
     default_preset_path: str = ""
     spl_sanity_threshold: float = -10.0
-    timers: TimerConfig = field(default_factory=TimerConfig)
 
 
 @dataclass
 class ManualConfig:
     default_preset_path: str = ""
     spl_sanity_threshold: float = -10.0
-    timers: TimerConfig = field(default_factory=TimerConfig)
 
 
 @dataclass
@@ -84,8 +84,6 @@ class PlaybackConfig:
     output_channel: str | None = None
     generator_signal: str = "pink_periodic"
     generator_level: float = -12.0
-    start_noise_timeout: float = 10.0
-    spl_check_timeout: float = 30.0
 
 
 @dataclass
@@ -182,6 +180,7 @@ class Config:
     tunest_pc: TunestPCConfig | None = None
     musway: MuswayConfig | None = None
     manual: ManualConfig = field(default_factory=ManualConfig)
+    timer: TimerConfig = field(default_factory=TimerConfig)
     paths: PathsConfig = field(default_factory=PathsConfig)
     playback: PlaybackConfig = field(default_factory=PlaybackConfig)
     measurement: MeasurementConfig = field(default_factory=MeasurementConfig)
@@ -260,27 +259,26 @@ def _parse_tunest_pc(data: dict[str, Any] | None) -> TunestPCConfig | None:
 def _parse_musway(data: dict[str, Any] | None) -> MuswayConfig | None:
     if data is None:
         return None
-    timers_raw = data.get("timers", {})
     return MuswayConfig(
         exe_path=str(data.get("exe_path", "")),
         default_preset_path=str(data.get("default_preset_path", "")),
         spl_sanity_threshold=float(data.get("spl_sanity_threshold", -10.0)),
-        timers=TimerConfig(
-            action_timeout=int(timers_raw.get("action_timeout", 10)),
-            preset_load_timeout=int(timers_raw.get("preset_load_timeout", 30)),
-        ),
     )
 
 
 def _parse_manual(data: dict[str, Any]) -> ManualConfig:
-    timers_raw = data.get("timers", {})
     return ManualConfig(
         default_preset_path=str(data.get("default_preset_path", "")),
         spl_sanity_threshold=float(data.get("spl_sanity_threshold", -10.0)),
-        timers=TimerConfig(
-            action_timeout=int(timers_raw.get("action_timeout", 10)),
-            preset_load_timeout=int(timers_raw.get("preset_load_timeout", 30)),
-        ),
+    )
+
+
+def _parse_timer(data: dict[str, Any]) -> TimerConfig:
+    return TimerConfig(
+        action_timeout=int(data.get("action_timeout", 10)),
+        preset_load_timeout=int(data.get("preset_load_timeout", 30)),
+        spl_check_timeout=int(data.get("spl_check_timeout", 30)),
+        start_noise_timeout=int(data.get("start_noise_timeout", 10)),
     )
 
 
@@ -355,6 +353,9 @@ def load_config(path: str | Path) -> Config:  # noqa: PLR0915
     # Manual config
     manual = _parse_manual(raw.get("manual", {}))
 
+    # Timer config
+    timer = _parse_timer(raw.get("timers", {}))
+
     # Validate: either tunest_pc or musway, not both
     if tunest_pc is not None and musway is not None:
         msg = (
@@ -384,8 +385,6 @@ def load_config(path: str | Path) -> Config:  # noqa: PLR0915
         output_channel=_optional_str(pb_raw.get("output_channel")),
         generator_signal=str(pb_raw.get("generator_signal", "pink_periodic")),
         generator_level=float(pb_raw.get("generator_level", -12.0)),
-        start_noise_timeout=float(pb_raw.get("start_noise_timeout", 10.0)),
-        spl_check_timeout=float(pb_raw.get("spl_check_timeout", 30.0)),
     )
 
     # Measurement
@@ -447,6 +446,7 @@ def load_config(path: str | Path) -> Config:  # noqa: PLR0915
         tunest_pc=tunest_pc,
         musway=musway,
         manual=manual,
+        timer=timer,
         paths=paths,
         playback=playback,
         measurement=measurement,
