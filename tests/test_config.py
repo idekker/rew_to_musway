@@ -232,23 +232,11 @@ class TestLoadConfig:
         cfg.write_text(
             "manual:\n"
             "  default_preset_path: ./preset.txt\n"
-            "  spl_sanity_threshold: -15.0\n"
             "channels:\n  - number: 1\n    name: LF\n    group: front\n"
         )
         config = load_config(str(cfg))
         assert config.tunest_pc is None
         assert config.manual.default_preset_path == "./preset.txt"
-        assert config.manual.spl_sanity_threshold == -15.0
-
-    def test_manual_mode_defaults(self, tmp_path: Path) -> None:
-        cfg = tmp_path / "manual_defaults.yaml"
-        cfg.write_text(
-            "manual:\n"
-            "  default_preset_path: ./preset.txt\n"
-            "channels:\n  - number: 1\n    name: LF\n    group: front\n"
-        )
-        config = load_config(str(cfg))
-        assert config.manual.spl_sanity_threshold == -10.0
 
     def test_no_tunest_no_manual_raises(self, tmp_path: Path) -> None:
         cfg = tmp_path / "neither.yaml"

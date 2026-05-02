@@ -11,11 +11,9 @@ rew:
 musway:
   exe_path: "D:\\Program Files (x86)\\TUNEST PC\\Musway Software-240813.exe"
   default_preset_path: "./test_files/default_preset.txt"
-  spl_sanity_threshold: -10.0     # dB below target_spl to trigger warning
 
 #manual:
 #  default_preset_path: "./test_files/default_preset.txt"
-#  spl_sanity_threshold: -10.0     # dB below target_spl to trigger warning
 
 timers:
   action_timeout: 3                 # seconds for mute/solo prompts

@@ -63,13 +63,11 @@ class TimerConfig:
 class MuswayConfig:
     exe_path: str = ""
     default_preset_path: str = ""
-    spl_sanity_threshold: float = -10.0
 
 
 @dataclass
 class ManualConfig:
     default_preset_path: str = ""
-    spl_sanity_threshold: float = -10.0
 
 
 @dataclass
@@ -262,14 +260,12 @@ def _parse_musway(data: dict[str, Any] | None) -> MuswayConfig | None:
     return MuswayConfig(
         exe_path=str(data.get("exe_path", "")),
         default_preset_path=str(data.get("default_preset_path", "")),
-        spl_sanity_threshold=float(data.get("spl_sanity_threshold", -10.0)),
     )
 
 
 def _parse_manual(data: dict[str, Any]) -> ManualConfig:
     return ManualConfig(
         default_preset_path=str(data.get("default_preset_path", "")),
-        spl_sanity_threshold=float(data.get("spl_sanity_threshold", -10.0)),
     )
 
 
