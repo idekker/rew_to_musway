@@ -305,19 +305,8 @@ class TestMuswayPresetAmpImmediate:
 
     @pytest.mark.asyncio
     @patch("rew_to_musway.amp._preset_amp.timed_prompt", new_callable=AsyncMock)
-    async def test_restore_eq_calls_timed_prompt_with_preset_name(
-        self, mock_prompt: AsyncMock, stub_amp: _StubAmp, session_dir: Path
-    ) -> None:
-        # Set a last_preset_path so it shows the filename
-        stub_amp._last_preset_path = session_dir / "preset_eq.txt"  # noqa: SLF001
-        await stub_amp.restore_eq()
-        mock_prompt.assert_called_once()
-        assert "preset_eq.txt" in mock_prompt.call_args[0][0]
-
-    @pytest.mark.asyncio
-    @patch("rew_to_musway.amp._preset_amp.timed_prompt", new_callable=AsyncMock)
     async def test_restore_eq_no_preset_uses_fallback(
         self, mock_prompt: AsyncMock, stub_amp: _StubAmp
     ) -> None:
         await stub_amp.restore_eq()
-        assert "latest preset" in mock_prompt.call_args[0][0]
+        assert "correct preset" in mock_prompt.call_args[0][0]

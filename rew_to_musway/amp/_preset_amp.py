@@ -359,9 +359,7 @@ class _MuswayPresetAmp(ABC):
 
     async def restore_eq(self) -> None:
         """Prompt user to ensure the latest preset with EQ is loaded."""
-        preset_name = (
-            self._last_preset_path.name if self._last_preset_path else "latest preset"
-        )
-        msg = f"Ensure preset '{preset_name}' is loaded in Musway software"
-        logger.info(msg)
-        await timed_prompt(msg, self._action_timeout)
+        if not self._last_preset_path:
+            msg = "Ensure correct preset is loaded in Musway software"
+            logger.info(msg)
+            await timed_prompt(msg, self._action_timeout)
