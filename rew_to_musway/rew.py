@@ -199,6 +199,11 @@ class REWController:
         logger.debug("Renaming measurement %s to '%s'", uuid, name)
         await self.client.measurements.set_title(uuid, name)
 
+    async def remove_measurement(self, uuid: UUID) -> None:
+        """Remove a measurement."""
+        logger.debug("Removing measurement %s", uuid)
+        await self.client.measurements.delete(uuid)
+
     async def apply_smoothing(self, uuid: UUID) -> None:
         """Apply configured smoothing to a measurement."""
         smoothing_str = self._config.measurement.smoothing

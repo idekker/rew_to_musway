@@ -25,6 +25,7 @@ from rich.console import Console
 
 from rew_to_musway.amp import PresetPhase
 from rew_to_musway.filters import compute_match_range
+from rew_to_musway.prompt import TimedPromptResult, timed_prompt
 
 from ._levels import ChannelLevel, LevelOffsets, compute_two_stage_offsets
 
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
     from pathlib import Path
     from uuid import UUID
 
+    from aiorew import SPLValues
     from rew_to_musway.amp import AmpBackend
     from rew_to_musway.config import ChannelConfig, Config
     from rew_to_musway.playback import PlaybackStrategy
@@ -133,22 +135,8 @@ async def run_measure_loop(
         # Solo channel
         await ctx.amp.solo_channel(ch_cfg.number)
 
-        # Measure SPL
-        console.print("    Measuring SPL...")
-        spl = await ctx.rew.measure_spl()
-        console.print(f"    SPL: {spl.spl:.1f} dB")
-
-        # Countdown + RTA
-        console.print(f"    Starting RTA in {COUNTDOWN_SECONDS}s...")
-        await _countdown()
-        console.print("    Running RTA...")
-        rta_uuid = await ctx.rew.run_rta()
-
-        name = f"{ch_cfg.name}_flat"
-        await ctx.rew.rename_measurement(rta_uuid, name)
-
-        input_rms = await ctx.rew.get_input_level_rms(rta_uuid)
-        console.print(f"    Input RMS: {input_rms:.1f} dB")
+        measurement_name = f"{ch_cfg.name}_flat"
+        rta_uuid, spl = await _do_rts_measurements_until_spl_ok(ctx, measurement_name)
 
         measurements.append(
             _ChannelMeasurements(channel=ch_cfg, spl_db=spl.spl, rta_uuid=rta_uuid)
@@ -253,13 +241,8 @@ async def run_finetune_loop(
         console.print(f"\n  [{i + 1}/{len(eligible)}] CH{ch} ({ch_cfg.name})")
         await ctx.amp.solo_channel(ch)
 
-        console.print(f"    Starting RTA in {COUNTDOWN_SECONDS}s...")
-        await _countdown()
-        console.print("    Running RTA...")
-        measured = await ctx.rew.run_rta()
-        await ctx.rew.rename_measurement(
-            measured, f"{ch_cfg.name}_finetune_{iteration}_measured"
-        )
+        measurement_name = f"{ch_cfg.name}_finetune_{iteration}_measured"
+        measured, _spl = await _do_rts_measurements_until_spl_ok(ctx, measurement_name)
         measured_uuids[ch] = measured
 
     # Batch compute corrections
@@ -352,20 +335,8 @@ async def run_verification_loop(
         console.print(f"\n  [{i + 1}/{len(channels)}] CH{ch} ({ch_cfg.name})")
         await ctx.amp.solo_channel(ch)
 
-        # SPL first (same order as measure loop)
-        console.print("    Measuring SPL...")
-        spl = await ctx.rew.measure_spl()
-        console.print(f"    SPL: {spl.spl:.1f} dB")
-
-        # Then RTA
-        console.print(f"    Starting RTA in {COUNTDOWN_SECONDS}s...")
-        await _countdown()
-        console.print("    Running RTA...")
-        uuid = await ctx.rew.run_rta()
-
-        await ctx.rew.rename_measurement(uuid, f"{ch_cfg.name}_after_eq")
-        input_rms = await ctx.rew.get_input_level_rms(uuid)
-        console.print(f"    Input RMS: {input_rms:.1f} dB")
+        measurement_name = f"{ch_cfg.name}_after_eq"
+        _uuid, spl = await _do_rts_measurements_until_spl_ok(ctx, measurement_name)
 
         readings.append(
             ChannelLevel(
@@ -404,6 +375,53 @@ async def run_verification_loop(
         )
 
     return VerificationResult(level_offsets=level_offsets, adjustments=adjustments)
+
+
+# ---------------------------------------------------------------------------
+# RTA measurement helper
+# ---------------------------------------------------------------------------
+
+
+async def _do_rts_measurements_until_spl_ok(
+    ctx: UnifiedContext,
+    measurement_name: str,
+) -> tuple[UUID, SPLValues]:
+    while True:
+        uuid, spl = await _do_rta_measurement(ctx, measurement_name)
+
+        if spl.spl < ctx.config.levels.target_spl - ctx.config.levels.tolerance:
+            result = await timed_prompt(
+                f"Measured SPL {spl.spl:.1f} below threshold, measurement failed. Retry?",
+                timeout_seconds=10,
+            )
+            if result != TimedPromptResult.CANCELLED:
+                await ctx.rew.remove_measurement(uuid=uuid)
+                console.print("\n    Retrying measurement...\n")
+                continue
+        break
+
+    return uuid, spl
+
+
+async def _do_rta_measurement(
+    ctx: UnifiedContext, measurement_name: str
+) -> tuple[UUID, SPLValues]:
+    # Measure SPL
+    console.print("    Measuring SPL...")
+    spl = await ctx.rew.measure_spl()
+    console.print(f"    SPL: {spl.spl:.1f} dB")
+
+    # Countdown + RTA
+    console.print(f"    Starting RTA in {COUNTDOWN_SECONDS}s...")
+    await _countdown()
+    console.print("    Running RTA...")
+    rta_uuid = await ctx.rew.run_rta()
+
+    await ctx.rew.rename_measurement(rta_uuid, measurement_name)
+
+    input_rms = await ctx.rew.get_input_level_rms(rta_uuid)
+    console.print(f"    Input RMS: {input_rms:.1f} dB")
+    return rta_uuid, spl
 
 
 # ---------------------------------------------------------------------------

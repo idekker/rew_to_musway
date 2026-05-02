@@ -8,6 +8,7 @@ from uuid import UUID
 
 import pytest
 
+from aiorew import MeasurementSummary
 from aiorew import TargetShape as AioTargetShape
 from rew_to_musway.config import TargetConfig, TargetShape
 from rew_to_musway.rew import REWController
@@ -18,6 +19,22 @@ if TYPE_CHECKING:
 SAMPLE_UUID = UUID("12345678-1234-1234-1234-123456789abc")
 _PREDICTED_UUID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 _ARITH_UUID = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+
+
+def _measurement_summary() -> MeasurementSummary:
+    return MeasurementSummary(
+        title="test",
+        uuid=SAMPLE_UUID,
+        date="2024-01-01T00:00:00Z",
+        startFreq=20.0,
+        endFreq=20000.0,
+        inverted=False,
+        sampleRate=48000,
+        rewVersion="1.0",
+        splOffsetdB=0.0,
+        alignSPLOffsetdB=0.0,
+        notes="\nInput RMS 50.0 dB\n",
+    )
 
 
 @pytest.fixture
@@ -37,6 +54,7 @@ def mock_client() -> AsyncMock:
 
     # Measurements
     client.measurements = AsyncMock()
+    client.measurements.get = AsyncMock(return_value=_measurement_summary())
     client.measurements.set_title = AsyncMock()
     client.measurements.apply_smoothing = AsyncMock()
     client.measurements.set_equaliser = AsyncMock()
@@ -49,6 +67,7 @@ def mock_client() -> AsyncMock:
     client.measurements.match_target = AsyncMock()
     client.measurements.generate_predicted_measurement = AsyncMock(return_value=None)
     client.measurements.get_filters = AsyncMock(return_value=[])
+    client.measurements.delete = AsyncMock()
     client.measurements.delete_all = AsyncMock()
     client.measurements.save_all = AsyncMock()
     client.measurements.arithmetic = AsyncMock()
@@ -99,6 +118,14 @@ class TestRTA:
         mock_client.save_rta.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_get_input_level_rms(
+        self, rew_controller: REWController, mock_client: AsyncMock
+    ) -> None:
+        level = await rew_controller.get_input_level_rms(SAMPLE_UUID)
+        mock_client.measurements.get.assert_called_once_with(SAMPLE_UUID)
+        assert level == 50.0
+
+    @pytest.mark.asyncio
     async def test_rename_measurement(
         self, rew_controller: REWController, mock_client: AsyncMock
     ) -> None:
@@ -106,6 +133,13 @@ class TestRTA:
         mock_client.measurements.set_title.assert_called_once_with(
             SAMPLE_UUID, "test_name"
         )
+
+    @pytest.mark.asyncio
+    async def test_remove_measurement(
+        self, rew_controller: REWController, mock_client: AsyncMock
+    ) -> None:
+        await rew_controller.remove_measurement(SAMPLE_UUID)
+        mock_client.measurements.delete.assert_called_once_with(SAMPLE_UUID)
 
 
 class TestSPLMeter:

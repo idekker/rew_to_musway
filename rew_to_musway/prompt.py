@@ -33,7 +33,7 @@ class TimedPromptResult(Enum):
 
     ENTER = auto()
     TIMER_EXPIRED = auto()
-    TIMER_CANCELLED = auto()
+    CANCELLED = auto()
 
 
 def _read_key() -> bytes | None:
@@ -123,9 +123,13 @@ async def timed_prompt(
                 logger.debug("Timed prompt: Enter pressed (%.1fs remaining)", remaining)
                 return TimedPromptResult.ENTER
 
-            if key == _KEY_ESC and not timer_cancelled:
-                timer_cancelled = True
-                logger.debug("Timed prompt: timer cancelled")
+            if key == _KEY_ESC:
+                if not timer_cancelled:
+                    timer_cancelled = True
+                    logger.debug("Timed prompt: timer cancelled")
+                else:
+                    logger.debug("Timed prompt: cancel request")
+                    return TimedPromptResult.CANCELLED
 
             if not timer_cancelled:
                 remaining -= _POLL_INTERVAL
