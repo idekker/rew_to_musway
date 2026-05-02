@@ -9,6 +9,7 @@ from typing import Any
 
 import yaml
 
+
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
@@ -116,6 +117,7 @@ class EQConfig:
 class LevelsConfig:
     target_spl: float = 75.0
     tolerance: float = 1.0
+    low_spl_offset: float = -10.0
 
 
 @dataclass
@@ -408,6 +410,7 @@ def load_config(path: str | Path) -> Config:  # noqa: PLR0915
     levels = LevelsConfig(
         target_spl=float(lvl_raw.get("target_spl", 75.0)),
         tolerance=float(lvl_raw.get("tolerance", 1.0)),
+        low_spl_offset=float(lvl_raw.get("low_spl_offset", -10.0)),
     )
 
     # Channels

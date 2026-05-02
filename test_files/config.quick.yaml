@@ -54,7 +54,8 @@ eq:
 
 levels:
   target_spl: 65.0                   # dB SPL
-  tolerance: 10.0                     # dB
+  tolerance: 10.0                    # dB
+  low_spl_offset: -10.0              # dB, applied to target_spl for low SPL measurements
 
 channels:
   - number: 1

@@ -389,7 +389,7 @@ async def _do_rts_measurements_until_spl_ok(
     while True:
         uuid, spl = await _do_rta_measurement(ctx, measurement_name)
 
-        if spl.spl < ctx.config.levels.target_spl - ctx.config.levels.tolerance:
+        if spl.spl < ctx.config.levels.target_spl + ctx.config.levels.low_spl_offset:
             result = await timed_prompt(
                 f"Measured SPL {spl.spl:.1f} below threshold, measurement failed. Retry?",
                 timeout_seconds=ctx.config.timer.action_timeout,
