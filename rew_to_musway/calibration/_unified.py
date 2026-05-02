@@ -147,6 +147,9 @@ async def run_measure_loop(
         name = f"{ch_cfg.name}_flat"
         await ctx.rew.rename_measurement(rta_uuid, name)
 
+        input_rms = await ctx.rew.get_input_level_rms(rta_uuid)
+        console.print(f"    Input RMS: {input_rms:.1f} dB")
+
         measurements.append(
             _ChannelMeasurements(channel=ch_cfg, spl_db=spl.spl, rta_uuid=rta_uuid)
         )
@@ -359,7 +362,10 @@ async def run_verification_loop(
         await _countdown()
         console.print("    Running RTA...")
         uuid = await ctx.rew.run_rta()
+
         await ctx.rew.rename_measurement(uuid, f"{ch_cfg.name}_after_eq")
+        input_rms = await ctx.rew.get_input_level_rms(uuid)
+        console.print(f"    Input RMS: {input_rms:.1f} dB")
 
         readings.append(
             ChannelLevel(

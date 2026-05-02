@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+import re
 from typing import TYPE_CHECKING
 
 from aiorew import (
@@ -13,6 +14,7 @@ from aiorew import (
     FilterSetting,
     GeneratorSignal,
     MatchTargetSettings,
+    MeasurementSummary,
     REWClient,
     RTAConfiguration,
     Smoothing,
@@ -178,6 +180,19 @@ class REWController:
         uuid = await self.client.save_rta()
         logger.info("RTA saved, UUID: %s", uuid)
         return uuid
+
+    async def get_measurement(self, uuid: UUID) -> MeasurementSummary:
+        """Return the Measurement dataclass for a given measurement UUID."""
+        return await self.client.measurements.get(uuid)
+
+    async def get_input_level_rms(self, uuid: UUID) -> float:
+        """Return the input level (RMS) for a given measurement UUID."""
+        measurement = await self.get_measurement(uuid)
+        return float(
+            re.search(
+                r"^Input RMS (\d+(.\d+)?) dB$", measurement.notes, flags=re.MULTILINE
+            ).group(1)
+        )
 
     async def rename_measurement(self, uuid: UUID, name: str) -> None:
         """Rename a measurement."""

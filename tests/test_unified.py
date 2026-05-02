@@ -61,6 +61,8 @@ def mock_rew() -> AsyncMock:
     rew.measure_spl = AsyncMock(return_value=_spl(75.0))
     rew.run_rta = AsyncMock(side_effect=[_UUID1, _UUID2])
     rew.rename_measurement = AsyncMock()
+    rew.get_measurement = AsyncMock()
+    rew.get_input_level_rms = AsyncMock(return_value=50.0)
     rew.apply_smoothing = AsyncMock()
     rew.configure_equaliser = AsyncMock()
     rew.configure_target = AsyncMock()
