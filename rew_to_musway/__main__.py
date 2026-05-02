@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import faulthandler
 import logging
 import signal
 import sys
 import threading
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -36,9 +36,11 @@ if TYPE_CHECKING:
     import types
     from collections.abc import Awaitable, Callable
 
-    from rew_to_musway.amp._amp_backend import AmpBackend
+    from rew_to_musway.amp import AmpBackend
 
-from pathlib import Path
+ENABLE_FAULTHANDLER = False
+if ENABLE_FAULTHANDLER:
+    import faulthandler
 
 console = Console()
 logger = logging.getLogger("rew_to_musway")
@@ -453,10 +455,11 @@ def main() -> None:
     logger.info("Session started: %s", session_dir)
     logger.info("Config: %s", args.config)
 
-    # Enable faulthandler so that segfaults (e.g. COM/ctypes crashes)
-    # dump a traceback to the log file before the process dies.
-    _fault_file = log_path.open("a", encoding="utf-8")
-    faulthandler.enable(file=_fault_file)
+    if ENABLE_FAULTHANDLER:
+        # Enable faulthandler so that segfaults (e.g. COM/ctypes crashes)
+        # dump a traceback to the log file before the process dies.
+        _fault_file = log_path.open("a", encoding="utf-8")
+        faulthandler.enable(file=_fault_file)
 
     # Install global exception hooks (must be after logging setup)
     sys.excepthook = _excepthook
