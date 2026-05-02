@@ -8,19 +8,28 @@ rew:
 #  exe_path: "D:\\Program Files (x86)\\TUNEST PC\\TUNEST_PC_FULL.exe"
 #  model: "M6"
 
-manual:
+musway:
+  exe_path: "D:\\Program Files (x86)\\TUNEST PC\\Musway Software-240813.exe"
   default_preset_path: "./test_files/default_preset.txt"
   spl_sanity_threshold: -10.0     # dB below target_spl to trigger warning
   timers:
     action_timeout: 3             # seconds for mute/solo prompts
     preset_load_timeout: 3        # seconds for preset load prompts
 
+#manual:
+#  default_preset_path: "./test_files/default_preset.txt"
+#  spl_sanity_threshold: -10.0     # dB below target_spl to trigger warning
+#  timers:
+#    action_timeout: 3             # seconds for mute/solo prompts
+#    preset_load_timeout: 3        # seconds for preset load prompts
+
 paths:
   output_dir: "./output"
 
 playback:
   mode: rew_generator                # manual | rew_generator
-  output_device: "EXCL: Realtek Digital Output (Realtek(R) Audio)"   # only used when mode=rew_generator
+  #  output_device: "EXCL: Realtek Digital Output (Realtek(R) Audio)"   # only used when mode=rew_generator
+  output_device: "EXCL: SPDIF Interface (SABRE 24/96 DAC_DigiT)"   # only used when mode=rew_generator
   output_channel: "L+R"              # only used when mode=rew_generator
   generator_signal: pink_periodic    # only used when mode=rew_generator
   generator_level: -12.0             # dBFS, only used when mode=rew_generator

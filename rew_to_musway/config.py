@@ -58,6 +58,14 @@ class TimerConfig:
 
 
 @dataclass
+class MuswayConfig:
+    exe_path: str = ""
+    default_preset_path: str = ""
+    spl_sanity_threshold: float = -10.0
+    timers: TimerConfig = field(default_factory=TimerConfig)
+
+
+@dataclass
 class ManualConfig:
     default_preset_path: str = ""
     spl_sanity_threshold: float = -10.0
@@ -172,6 +180,7 @@ class CombinedMeasurement:
 class Config:
     rew: REWConfig = field(default_factory=REWConfig)
     tunest_pc: TunestPCConfig | None = None
+    musway: MuswayConfig | None = None
     manual: ManualConfig = field(default_factory=ManualConfig)
     paths: PathsConfig = field(default_factory=PathsConfig)
     playback: PlaybackConfig = field(default_factory=PlaybackConfig)
@@ -248,6 +257,21 @@ def _parse_tunest_pc(data: dict[str, Any] | None) -> TunestPCConfig | None:
     )
 
 
+def _parse_musway(data: dict[str, Any] | None) -> MuswayConfig | None:
+    if data is None:
+        return None
+    timers_raw = data.get("timers", {})
+    return MuswayConfig(
+        exe_path=str(data.get("exe_path", "")),
+        default_preset_path=str(data.get("default_preset_path", "")),
+        spl_sanity_threshold=float(data.get("spl_sanity_threshold", -10.0)),
+        timers=TimerConfig(
+            action_timeout=int(timers_raw.get("action_timeout", 10)),
+            preset_load_timeout=int(timers_raw.get("preset_load_timeout", 30)),
+        ),
+    )
+
+
 def _parse_manual(data: dict[str, Any]) -> ManualConfig:
     timers_raw = data.get("timers", {})
     return ManualConfig(
@@ -283,7 +307,7 @@ def _parse_channel(data: dict[str, Any]) -> ChannelConfig:
 # ---------------------------------------------------------------------------
 
 
-def load_config(path: str | Path) -> Config:
+def load_config(path: str | Path) -> Config:  # noqa: PLR0915
     """Load and validate a YAML configuration file.
 
     Parameters
@@ -322,17 +346,27 @@ def load_config(path: str | Path) -> Config:
         port=int(rew_raw.get("port", 4735)),
     )
 
-    # Tunest PC (optional — absence implies manual mode)
+    # Tunest PC (optional — absence implies Musway or manual mode)
     tunest_pc = _parse_tunest_pc(raw.get("tunest_pc"))
+
+    # Musway (optional — absence implies Tunest PC or manual mode)
+    musway = _parse_musway(raw.get("musway"))
 
     # Manual config
     manual = _parse_manual(raw.get("manual", {}))
 
-    # Validate: if no tunest_pc, manual.default_preset_path must be set
-    if tunest_pc is None and not manual.default_preset_path:
+    # Validate: either tunest_pc or musway, not both
+    if tunest_pc is not None and musway is not None:
+        msg = (
+            "Config requires either 'tunest_pc' section or 'musway' section, not both."
+        )
+        raise ValueError(msg)
+
+    # Validate: if no tunest_pc and no musway, manual.default_preset_path must be set
+    if tunest_pc is None and musway is None and not manual.default_preset_path:
         msg = (
             "Config requires either 'tunest_pc' section or "
-            "'manual.default_preset_path' to be set"
+            "'musway' section, or 'manual.default_preset_path' to be set"
         )
         raise ValueError(msg)
 
@@ -411,6 +445,7 @@ def load_config(path: str | Path) -> Config:
     return Config(
         rew=rew,
         tunest_pc=tunest_pc,
+        musway=musway,
         manual=manual,
         paths=paths,
         playback=playback,

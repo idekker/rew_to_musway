@@ -9,35 +9,15 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from rew_to_musway.amp._manual_amp import ManualAmp, PresetPhase, preset_filename
+from rew_to_musway.amp._manual_amp import ManualAmp
+from rew_to_musway.amp._preset_amp import PresetPhase
+from rew_to_musway.config import ManualConfig, TimerConfig
 
 if TYPE_CHECKING:
     from rew_to_musway.config import ChannelConfig
 
 # Path to the reference preset file
 _TEST_PRESET = Path(__file__).parent.parent / "test_files" / "default_preset.txt"
-
-
-# ---------------------------------------------------------------------------
-# Preset naming
-# ---------------------------------------------------------------------------
-
-
-class TestPresetFilename:
-    def test_initial(self) -> None:
-        assert preset_filename(PresetPhase.INITIAL) == "preset_initial.txt"
-
-    def test_eq(self) -> None:
-        assert preset_filename(PresetPhase.EQ) == "preset_eq.txt"
-
-    def test_finetune(self) -> None:
-        assert (
-            preset_filename(PresetPhase.FINETUNE, iteration=2)
-            == "preset_finetune_2.txt"
-        )
-
-    def test_verification(self) -> None:
-        assert preset_filename(PresetPhase.VERIFICATION) == "preset_verification.txt"
 
 
 # ---------------------------------------------------------------------------
@@ -59,17 +39,26 @@ def default_preset(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
+def config(default_preset: Path) -> ManualConfig:
+    return ManualConfig(
+        default_preset_path=str(default_preset),
+        timers=TimerConfig(
+            action_timeout=1.0,
+            preset_load_timeout=1.0,
+        ),
+    )
+
+
+@pytest.fixture
 def manual_amp(
-    default_preset: Path,
+    config: ManualConfig,
     session_dir: Path,
     sample_channels: list[ChannelConfig],
 ) -> ManualAmp:
     return ManualAmp(
-        default_preset_path=default_preset,
+        config=config,
         session_dir=session_dir,
         channels=sample_channels,
-        action_timeout=1.0,
-        preset_load_timeout=1.0,
     )
 
 
@@ -194,7 +183,7 @@ class TestManualAmpImmediate:
         assert "CH1" in msg
 
     @pytest.mark.asyncio
-    @patch("rew_to_musway.amp._manual_amp.timed_prompt", new_callable=AsyncMock)
+    @patch("rew_to_musway.amp._preset_amp.timed_prompt", new_callable=AsyncMock)
     async def test_mute_all_prompts(
         self, mock_prompt: AsyncMock, manual_amp: ManualAmp
     ) -> None:

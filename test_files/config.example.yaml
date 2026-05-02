@@ -8,14 +8,22 @@ rew:
 #  exe_path: "D:\\Program Files (x86)\\TUNEST PC\\TUNEST_PC_FULL.exe"
 #  model: "M6"
 
-# Manual mode config — used when tunest_pc section is absent.
-# Omit tunest_pc entirely to use manual mode.
-manual:
+musway:
+  exe_path: "D:\\Program Files (x86)\\TUNEST PC\\Musway Software-240813.exe"
   default_preset_path: "./test_files/default_preset.txt"
   spl_sanity_threshold: -10.0     # dB below target_spl to trigger warning
   timers:
     action_timeout: 10            # seconds for mute/solo prompts
     preset_load_timeout: 30       # seconds for preset load prompts
+
+# Manual mode config — used when tunest_pc section is absent.
+# Omit tunest_pc and musway entirely to use manual mode.
+#manual:
+#  default_preset_path: "./test_files/default_preset.txt"
+#  spl_sanity_threshold: -10.0     # dB below target_spl to trigger warning
+#  timers:
+#    action_timeout: 10            # seconds for mute/solo prompts
+#    preset_load_timeout: 30       # seconds for preset load prompts
 
 paths:
   output_dir: "./output"

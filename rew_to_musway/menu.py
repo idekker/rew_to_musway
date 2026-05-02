@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 console = Console()
 
-
 # ---------------------------------------------------------------------------
 # Menu choices
 # ---------------------------------------------------------------------------
@@ -57,10 +56,15 @@ def show_status(
         "[green]Connected[/green]" if amp_connected else "[red]Not connected[/red]"
     )
 
+    amp_mode = "Manual"
+    if config.tunest_pc:
+        amp_mode = f"Tunest PC: {config.tunest_pc.model}"
+    elif config.musway:
+        amp_mode = "Musway"
+
     status_text = (
         f"REW:       {rew_status}  ({config.rew.host}:{config.rew.port})\n"
-        f"Amp:       {amp_status}  "
-        f"({'Manual' if config.tunest_pc is None else config.tunest_pc.model})\n"
+        f"Amp:       {amp_status}  ({amp_mode})\n"
         f"Playback:  {config.playback.mode.value}\n"
         f"Channels:  {len(config.channels)}"
     )

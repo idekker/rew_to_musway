@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from rich.console import Console
 
-from rew_to_musway.amp import ManualAmp, TunestPCAmp
+from rew_to_musway.amp import ManualAmp, MuswayAmp, TunestPCAmp
 
 from .calibration import (
     MeasureResult,
@@ -144,13 +144,19 @@ def _create_amp_backend(config: Config, session_dir: Path) -> AmpBackend:
         logger.info("Using TunestPC backend (automated mode)")
         return TunestPCAmp(config)
 
+    if config.musway is not None:
+        logger.info("Using Musway backend (automated mode)")
+        return MuswayAmp(
+            config=config.musway,
+            channels=config.channels,
+            session_dir=session_dir,
+        )
+
     logger.info("Using Manual backend (preset file mode)")
     return ManualAmp(
-        default_preset_path=Path(config.manual.default_preset_path).resolve(),
-        session_dir=session_dir,
+        config=config.manual,
         channels=config.channels,
-        action_timeout=float(config.manual.timers.action_timeout),
-        preset_load_timeout=float(config.manual.timers.preset_load_timeout),
+        session_dir=session_dir,
     )
 
 

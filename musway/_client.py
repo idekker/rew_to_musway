@@ -1,3 +1,4 @@
+import contextlib
 from enum import Enum, auto
 from pathlib import Path
 
@@ -242,7 +243,8 @@ class Musway:
 
     def _update_and_check_state(self, excepted_state: _State) -> None:
         self._main_window.restore()
-        win32gui.SetForegroundWindow(self._main_window.wrapper_object().handle)
+        with contextlib.suppress(Exception):
+            win32gui.SetForegroundWindow(self._main_window.wrapper_object().handle)
 
         if self._validate_state_every_request:
             self._update_state()
