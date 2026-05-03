@@ -22,6 +22,7 @@ dependencies = [
     "questionary>=2.0",
     "typing_extensions>=4.15",
     "pillow>=12.0",
+    "keyboard>=0.13",
 ]
 
 [project.optional-dependencies]

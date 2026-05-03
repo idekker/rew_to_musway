@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import logging
+import msvcrt
 import signal
 import sys
 import threading
@@ -12,6 +14,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import keyboard
+from keyboard import KeyboardEvent
+from prompt_toolkit.input import PipeInput, create_pipe_input
 from rich.console import Console
 
 from rew_to_musway.amp import ManualAmp, MuswayAmp, TunestPCAmp
@@ -207,6 +212,7 @@ async def _dispatch_menu(  # noqa: PLR0913
     playback: PlaybackStrategy,
     session_dir: Path,
     state: _SessionState,
+    input_pipe: PipeInput,
 ) -> None:
     """Execute the user's menu choice."""
     ctx = UnifiedContext(
@@ -226,7 +232,7 @@ async def _dispatch_menu(  # noqa: PLR0913
             if choice == "Full calibration (phases 1-5)":
                 await _run_full_calibration(ctx, state)
             elif choice == "Level balancing + EQ (phases 1-2)":
-                mode, ch_num = await ask_channel_mode(config)
+                mode, ch_num = await ask_channel_mode(config, input_pipe)
                 channels = select_channels(
                     config, mode, start_from=ch_num, single=ch_num
                 )
@@ -237,7 +243,7 @@ async def _dispatch_menu(  # noqa: PLR0913
                         "[yellow]No measurement data — run phases 1-2 first.[/yellow]"
                     )
                     return
-                mode, ch_num = await ask_channel_mode(config)
+                mode, ch_num = await ask_channel_mode(config, input_pipe)
                 channels = select_channels(
                     config, mode, start_from=ch_num, single=ch_num
                 )
@@ -351,21 +357,26 @@ async def _run(config: Config, session_dir: Path) -> None:
         await rew.close()
         return
 
-    try:
-        await _menu_loop(config, amp, rew, playback, session_dir, state)
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Interrupted by user.[/yellow]")
-        logger.warning("Interrupted by user (KeyboardInterrupt)")
-    except SystemExit as exc:
-        logger.warning("SystemExit(%s) caught — shutting down gracefully", exc.code)
-    except BaseException:
-        logger.exception("Fatal error in main loop")
-        console.print("\n[red]A fatal error occurred.[/red]")
-        console.print("Check the log file for details.")
-        raise
-    finally:
-        wakeup_task.cancel()
-        await _shutdown(config, rew)
+    with create_pipe_input() as input_pipe:
+        key_task = asyncio.create_task(_listen_globally(input_pipe))
+
+        try:
+            await _menu_loop(config, amp, rew, playback, session_dir, state, input_pipe)
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Interrupted by user.[/yellow]")
+            logger.warning("Interrupted by user (KeyboardInterrupt)")
+        except SystemExit as exc:
+            logger.warning("SystemExit(%s) caught — shutting down gracefully", exc.code)
+        except BaseException:
+            logger.exception("Fatal error in main loop")
+            console.print("\n[red]A fatal error occurred.[/red]")
+            console.print("Check the log file for details.")
+            raise
+        finally:
+            input_pipe.flush()
+            wakeup_task.cancel()
+            key_task.cancel()
+            await _shutdown(config, rew)
 
 
 async def _menu_loop(  # noqa: PLR0913
@@ -375,20 +386,23 @@ async def _menu_loop(  # noqa: PLR0913
     playback: PlaybackStrategy,
     session_dir: Path,
     state: _SessionState,
+    input_pipe: PipeInput,
 ) -> None:
     """Run the interactive menu loop until the user quits."""
     while True:
         console.print()
         show_status(config, rew_connected=True, amp_connected=True)
 
-        choice = await ask_main_menu()
+        choice = await ask_main_menu(input_pipe)
         logger.info("Menu selection: %s", choice)
 
         if choice == "Quit":
             break
 
         try:
-            await _dispatch_menu(choice, config, amp, rew, playback, session_dir, state)
+            await _dispatch_menu(
+                choice, config, amp, rew, playback, session_dir, state, input_pipe
+            )
         except KeyboardInterrupt:
             raise
         except Exception:
@@ -397,6 +411,36 @@ async def _menu_loop(  # noqa: PLR0913
                 f"\n[red]Error during '{choice}'.[/red] Check the log file for details."
             )
             console.print("[dim]Returning to main menu...[/dim]")
+
+
+async def _listen_globally(input_pipe: PipeInput) -> None:
+    def _clear_stdin_buffer_and_insert_character(ch: bytes) -> None:
+        if msvcrt.kbhit():
+            msvcrt.getch()
+        msvcrt.ungetch(ch)
+
+    def on_key(event: KeyboardEvent) -> None:
+        with contextlib.suppress(Exception):
+            if event.name == "enter":
+                input_pipe.send_bytes(b"\r")
+                _clear_stdin_buffer_and_insert_character(b"\r")
+            elif event.name in {"j", "down"}:
+                input_pipe.send_bytes(b"j")
+                _clear_stdin_buffer_and_insert_character(b"j")
+            elif event.name in {"k", "up"}:
+                input_pipe.send_bytes(b"k")
+                _clear_stdin_buffer_and_insert_character(b"k")
+            elif event.name == "esc":
+                input_pipe.send_bytes(b"\x1b")
+                _clear_stdin_buffer_and_insert_character(b"\x1b")
+
+    async def _do_wait() -> None:
+        stop = asyncio.Event()
+        while not stop.is_set():  # noqa: ASYNC110 — intentional periodic wakeup for signal handling
+            await asyncio.sleep(0.5)
+
+    keyboard.on_press(on_key)
+    await _do_wait()
 
 
 async def _shutdown(config: Config, rew: REWController) -> None:
