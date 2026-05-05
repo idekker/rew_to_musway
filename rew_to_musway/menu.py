@@ -78,7 +78,7 @@ def show_status(
 # ---------------------------------------------------------------------------
 
 
-def _flush_input() -> None:
+def _flush_input(input_pipe: PipeInput) -> None:
     """Drain any leftover keypresses from the console input buffer.
 
     ``msvcrt``-based helpers (``wait_for_enter``, SPL check loop) consume
@@ -88,11 +88,12 @@ def _flush_input() -> None:
     """
     while msvcrt.kbhit():
         msvcrt.getch()
+    input_pipe.flush()
 
 
 async def ask_main_menu(input_pipe: PipeInput) -> str:
     """Show main menu and return selected action."""
-    _flush_input()
+    _flush_input(input_pipe)
     result = await questionary.select(
         "What would you like to do?",
         choices=MAIN_CHOICES,
@@ -114,7 +115,7 @@ async def ask_channel_mode(
     and channel_number is set for start_from/single modes.
 
     """
-    _flush_input()
+    _flush_input(input_pipe)
     mode_result = await questionary.select(
         "Channel selection:",
         choices=CHANNEL_MODE_CHOICES,
@@ -127,6 +128,7 @@ async def ask_channel_mode(
     # Build channel choices
     ch_choices = [f"CH{ch.number} {ch.name}" for ch in config.channels]
 
+    _flush_input(input_pipe)
     ch_result = await questionary.select(
         "Select channel:",
         choices=ch_choices,
