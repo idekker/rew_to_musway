@@ -426,7 +426,7 @@ class REWController:
 
         """
         before = await self.get_measurement_uuids()
-        parameters = {"maxGain": 10.0, "lowerLimit": 20, "upperLimit": 20000}
+        parameters = {"maxGain": 10.0, "lowerLimit": 30, "upperLimit": 300}
         await self.client.measurements.arithmetic(
             [a, b], ArithmeticFunction.A_OVER_B, parameters
         )
