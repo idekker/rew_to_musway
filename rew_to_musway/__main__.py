@@ -7,6 +7,7 @@ import asyncio
 import contextlib
 import logging
 import msvcrt
+import os
 import signal
 import sys
 import threading
@@ -15,6 +16,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import keyboard
+import win32gui
+import win32process
 from keyboard import KeyboardEvent
 from prompt_toolkit.input import PipeInput, create_pipe_input
 from rich.console import Console
@@ -439,26 +442,35 @@ async def _menu_loop(  # noqa: PLR0913
             console.print("[dim]Returning to main menu...[/dim]")
 
 
-async def _listen_globally(input_pipe: PipeInput) -> None:
+async def _listen_globally(input_pipe: PipeInput) -> None:  # noqa: C901
+    def _is_console_window_in_focus() -> bool:
+        focus_window_pid = win32process.GetWindowThreadProcessId(
+            win32gui.GetForegroundWindow()
+        )[1]
+        current_process_pid = os.getppid()
+
+        return focus_window_pid == current_process_pid
+
     def _clear_stdin_buffer_and_insert_character(ch: bytes) -> None:
-        if msvcrt.kbhit():
-            msvcrt.getch()
-        msvcrt.ungetch(ch)
+        if not _is_console_window_in_focus():
+            if msvcrt.kbhit():
+                msvcrt.getch()
+            msvcrt.ungetch(ch)
 
     def on_key(event: KeyboardEvent) -> None:
         with contextlib.suppress(Exception):
             if event.name == "enter":
-                input_pipe.send_bytes(b"\r")
                 _clear_stdin_buffer_and_insert_character(b"\r")
+                input_pipe.send_bytes(b"\r")
             elif event.name in {"j", "down"}:
-                input_pipe.send_bytes(b"j")
                 _clear_stdin_buffer_and_insert_character(b"j")
+                input_pipe.send_bytes(b"j")
             elif event.name in {"k", "up"}:
-                input_pipe.send_bytes(b"k")
                 _clear_stdin_buffer_and_insert_character(b"k")
+                input_pipe.send_bytes(b"k")
             elif event.name == "esc":
-                input_pipe.send_bytes(b"\x1b")
                 _clear_stdin_buffer_and_insert_character(b"\x1b")
+                input_pipe.send_bytes(b"\x1b")
 
     async def _do_wait() -> None:
         stop = asyncio.Event()

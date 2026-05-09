@@ -91,6 +91,7 @@ def _flush_input(input_pipe: PipeInput) -> None:
     while msvcrt.kbhit():
         msvcrt.getch()
     input_pipe.flush()
+    input_pipe.flush_keys()
 
 
 async def ask_main_menu(input_pipe: PipeInput) -> str:
