@@ -9,9 +9,9 @@ from uuid import UUID
 import pytest
 
 from rew_to_musway.calibration import (
-    MeasureResult,
     UnifiedContext,
     VerificationResult,
+    run_eq_loop,
     run_finetune_loop,
     run_measure_loop,
     run_verification_loop,
@@ -58,11 +58,10 @@ def mock_amp() -> AsyncMock:
 @pytest.fixture
 def mock_rew() -> AsyncMock:
     rew = AsyncMock()
-    rew.measure_spl = AsyncMock(return_value=_spl(75.0))
     rew.run_rta = AsyncMock(side_effect=[_UUID1, _UUID2])
     rew.rename_measurement = AsyncMock()
     rew.get_measurement = AsyncMock()
-    rew.get_input_level_rms = AsyncMock(return_value=50.0)
+    rew.get_input_level_rms = AsyncMock(return_value=75.0)
     rew.apply_smoothing = AsyncMock()
     rew.configure_equaliser = AsyncMock()
     rew.configure_target = AsyncMock()
@@ -117,13 +116,12 @@ class TestMeasureLoop:
         # Only 2 channels for simplicity
         channels = sample_channels[:2]
         result = await run_measure_loop(ctx, channels)
-        assert isinstance(result, MeasureResult)
-        assert len(result.rta_uuids) == 2
-        assert len(result.predicted_uuids) == 2
+        assert isinstance(result, dict)
+        assert len(result) == 2
 
     @pytest.mark.asyncio
     @patch("rew_to_musway.calibration._unified._countdown", new_callable=AsyncMock)
-    async def test_buffers_eq_only(
+    async def test_run_measure_loop_apply(
         self,
         mock_cd: AsyncMock,  # noqa: ARG002
         ctx: UnifiedContext,
@@ -132,14 +130,31 @@ class TestMeasureLoop:
     ) -> None:
         channels = sample_channels[:2]
         await run_measure_loop(ctx, channels)
-        # EQ filters buffered
-        assert mock_amp.set_eq_filters.call_count == 2
         # Crossovers buffered
         assert mock_amp.set_crossover.call_count >= 2
         # Level offsets NOT set during measure loop (only initial reset to 0)
         level_calls = mock_amp.set_channel_level.call_args_list
         for call in level_calls:
             assert call.args[1] == -60.0, "Measure loop should only reset levels to 0"
+        assert mock_amp.apply.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_run_eq_loop_apply(
+        self,
+        ctx: UnifiedContext,
+        mock_amp: AsyncMock,
+        sample_channels: list[ChannelConfig],
+    ) -> None:
+        channels = sample_channels[:2]
+        rta_uuids = {channels[0].number: _UUID1, channels[1].number: _UUID2}
+        await run_eq_loop(ctx, rta_uuids, channels)
+        # EQ filters buffered
+        assert mock_amp.set_eq_filters.call_count == 2
+        # Level offsets NOT set during measure loop (only initial reset to 0)
+        level_calls = mock_amp.set_channel_level.call_args_list
+        for call in level_calls:
+            assert call.args[1] == -60.0, "Measure loop should only reset levels to 0"
+        assert mock_amp.apply.call_count == 1
 
     @pytest.mark.asyncio
     @patch("rew_to_musway.calibration._unified._countdown", new_callable=AsyncMock)
@@ -237,7 +252,7 @@ class TestVerificationLoop:
         ch5 = sample_channels[4]  # rear
         channels = [ch1, ch5]
         mock_rew.run_rta = AsyncMock(side_effect=[_UUID1, _UUID2])
-        mock_rew.measure_spl = AsyncMock(return_value=_spl(75.0))
+        mock_rew.get_input_level_rms = AsyncMock(return_value=75.0)
 
         result = await run_verification_loop(ctx, channels)
         assert result.adjustments == {}
@@ -257,7 +272,7 @@ class TestVerificationLoop:
         ch2 = sample_channels[1]  # front
         channels = [ch1, ch2]
         mock_rew.run_rta = AsyncMock(side_effect=[_UUID1, _UUID2])
-        mock_rew.measure_spl = AsyncMock(side_effect=[_spl(78.0), _spl(75.0)])
+        mock_rew.get_input_level_rms = AsyncMock(side_effect=[78.0, 75.0])
 
         result = await run_verification_loop(ctx, channels)
         # CH1 is 3 dB louder → should get -3.0 offset

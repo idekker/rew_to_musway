@@ -33,7 +33,6 @@ if TYPE_CHECKING:
     from pathlib import Path
     from uuid import UUID
 
-    from aiorew import SPLValues
     from rew_to_musway.amp import AmpBackend
     from rew_to_musway.config import ChannelConfig, Config
     from rew_to_musway.playback import PlaybackStrategy
@@ -78,27 +77,17 @@ async def _countdown(seconds: int = COUNTDOWN_SECONDS) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase 1+2: Combined measure loop
+# Phase 1: Flat measure loop
 # ---------------------------------------------------------------------------
-
-
-@dataclass
-class MeasureResult:
-    """Results from the combined measure loop."""
-
-    rta_uuids: dict[int, UUID] = field(default_factory=dict)
-    predicted_uuids: dict[int, UUID] = field(default_factory=dict)
 
 
 async def run_measure_loop(
     ctx: UnifiedContext,
-    channels: list[ChannelConfig] | None = None,
-) -> MeasureResult:
-    """Phase 1+2: Measure SPL + RTA for each channel in a single solo pass.
+    channels: list[ChannelConfig],
+) -> dict[int, UUID]:
+    """Phase 1: Flat RTA measurement for each channel in a single solo pass.
 
-    After all channels are measured, batch-compute level offsets and EQ
-    filters, then buffer everything into the amp backend for a single
-    ``apply()`` call by the caller.
+    After all channels are measured.
 
     Parameters
     ----------
@@ -109,13 +98,13 @@ async def run_measure_loop(
 
     Returns
     -------
-    MeasureResult with level offsets, RTA UUIDs, and predicted UUIDs.
+    RTA UUIDs.
 
     """
     if channels is None:
         channels = ctx.config.channels
 
-    console.print("\n[bold]Phase 1+2: Combined SPL + RTA Measurement[/bold]\n")
+    console.print("\n[bold]Phase 1: Flat RTA Measurement[/bold]\n")
 
     # Prepare: bypass EQ, configure filters, levels to 0
     for ch_cfg in channels:
@@ -136,39 +125,79 @@ async def run_measure_loop(
         await ctx.amp.solo_channel(ch_cfg.number)
 
         measurement_name = f"{ch_cfg.name}_flat"
-        rta_uuid, spl = await _do_rts_measurements_until_spl_ok(ctx, measurement_name)
+        rta_uuid, spl = await _do_rta_measurements_until_spl_ok(ctx, measurement_name)
 
         measurements.append(
-            _ChannelMeasurements(channel=ch_cfg, spl_db=spl.spl, rta_uuid=rta_uuid)
+            _ChannelMeasurements(channel=ch_cfg, spl_db=spl, rta_uuid=rta_uuid)
         )
 
-    # Batch compute EQ
     rta_uuids: dict[int, UUID] = {}
-    predicted_uuids: dict[int, UUID] = {}
     for m in measurements:
         ch_cfg = m.channel
         assert m.rta_uuid is not None  # noqa: S101
         rta_uuids[ch_cfg.number] = m.rta_uuid
 
+    console.print(
+        f"\n[green]Measurement complete for {len(channels)} channels.[/green]"
+    )
+
+    return rta_uuids
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: EQ
+# ---------------------------------------------------------------------------
+
+
+async def run_eq_loop(
+    ctx: UnifiedContext,
+    rta_uuids: dict[int, UUID],
+    channels: list[ChannelConfig],
+) -> dict[int, UUID]:
+    """Phase 2: Calculate EQ for each channel in a single solo pass.
+
+    EQ filters calculated, then buffer everything into the amp backend for
+    a single ``apply()`` call by the caller.
+
+    Parameters
+    ----------
+    ctx:
+        Unified calibration context.
+    rta_uuids:
+        Per-channel flat RTA UUIDs from the measure loop.
+    channels:
+        Channels to eq.  Defaults to all config channels.
+
+    Returns
+    -------
+    EQ predictions.
+
+    """
+    if channels is None:
+        channels = ctx.config.channels
+
+    console.print("\n[bold]Phase 2: EQ[/bold]\n")
+
+    # Batch compute EQ
+    predicted_uuids: dict[int, UUID] = {}
+    for ch_cfg in channels:
+        assert ch_cfg.number in rta_uuids  # noqa: S101
+        rta_uuid = rta_uuids[ch_cfg.number]
+
         console.print(f"\n  Computing EQ for CH{ch_cfg.number} ({ch_cfg.name})...")
-        predicted = await _run_eq_pipeline(ctx, m.rta_uuid, ch_cfg)
+        predicted = await _run_eq_pipeline(ctx, rta_uuid, ch_cfg)
         predicted_uuids[ch_cfg.number] = predicted
 
         # Buffer EQ filters
-        filters = await ctx.rew.get_filters(m.rta_uuid)
+        filters = await ctx.rew.get_filters(rta_uuid)
         await ctx.amp.set_eq_filters(ch_cfg.number, filters)
 
     ctx.amp.set_phase(PresetPhase.EQ)
     await ctx.amp.apply()
 
-    console.print(
-        f"\n[green]Measurement complete for {len(channels)} channels.[/green]"
-    )
+    console.print(f"\n[green]EQ complete for {len(channels)} channels.[/green]")
 
-    return MeasureResult(
-        rta_uuids=rta_uuids,
-        predicted_uuids=predicted_uuids,
-    )
+    return predicted_uuids
 
 
 # ---------------------------------------------------------------------------
@@ -242,7 +271,7 @@ async def run_finetune_loop(
         await ctx.amp.solo_channel(ch)
 
         measurement_name = f"{ch_cfg.name}_finetune_{iteration}_measured"
-        measured, _spl = await _do_rts_measurements_until_spl_ok(ctx, measurement_name)
+        measured, _spl = await _do_rta_measurements_until_spl_ok(ctx, measurement_name)
         measured_uuids[ch] = measured
 
     # Batch compute corrections
@@ -336,14 +365,14 @@ async def run_verification_loop(
         await ctx.amp.solo_channel(ch)
 
         measurement_name = f"{ch_cfg.name}_after_eq"
-        _uuid, spl = await _do_rts_measurements_until_spl_ok(ctx, measurement_name)
+        _uuid, spl = await _do_rta_measurements_until_spl_ok(ctx, measurement_name)
 
         readings.append(
             ChannelLevel(
                 channel_number=ch,
                 channel_name=ch_cfg.name,
                 group=ch_cfg.group,
-                spl_db=spl.spl,
+                spl_db=spl,
             )
         )
 
@@ -382,16 +411,16 @@ async def run_verification_loop(
 # ---------------------------------------------------------------------------
 
 
-async def _do_rts_measurements_until_spl_ok(
+async def _do_rta_measurements_until_spl_ok(
     ctx: UnifiedContext,
     measurement_name: str,
-) -> tuple[UUID, SPLValues]:
+) -> tuple[UUID, float]:
     while True:
         uuid, spl = await _do_rta_measurement(ctx, measurement_name)
 
-        if spl.spl < ctx.config.levels.target_spl + ctx.config.levels.low_spl_offset:
+        if spl < ctx.config.levels.target_spl + ctx.config.levels.low_spl_offset:
             result = await timed_prompt(
-                f"Measured SPL {spl.spl:.1f} below threshold, measurement failed. Retry?",
+                f"Measured SPL {spl:.1f} below threshold, measurement failed. Retry?",
                 timeout_seconds=ctx.config.timer.action_timeout,
             )
             if result != TimedPromptResult.CANCELLED:
@@ -405,12 +434,7 @@ async def _do_rts_measurements_until_spl_ok(
 
 async def _do_rta_measurement(
     ctx: UnifiedContext, measurement_name: str
-) -> tuple[UUID, SPLValues]:
-    # Measure SPL
-    console.print("    Measuring SPL...")
-    spl = await ctx.rew.measure_spl()
-    console.print(f"    SPL: {spl.spl:.1f} dB")
-
+) -> tuple[UUID, float]:
     # Countdown + RTA
     console.print(f"    Starting RTA in {COUNTDOWN_SECONDS}s...")
     await _countdown()
@@ -421,7 +445,7 @@ async def _do_rta_measurement(
 
     input_rms = await ctx.rew.get_input_level_rms(rta_uuid)
     console.print(f"    Input RMS: {input_rms:.1f} dB")
-    return rta_uuid, spl
+    return rta_uuid, input_rms
 
 
 # ---------------------------------------------------------------------------

@@ -22,10 +22,10 @@ from rich.console import Console
 from rew_to_musway.amp import ManualAmp, MuswayAmp, TunestPCAmp
 
 from .calibration import (
-    MeasureResult,
     UnifiedContext,
     eligible_finetune_channels,
     run_combined_measurements,
+    run_eq_loop,
     run_finetune_loop,
     run_measure_loop,
     run_verification_loop,
@@ -40,6 +40,7 @@ from .rew import REWController
 if TYPE_CHECKING:
     import types
     from collections.abc import Awaitable, Callable
+    from uuid import UUID
 
     from rew_to_musway.amp import AmpBackend
 
@@ -231,12 +232,20 @@ async def _dispatch_menu(  # noqa: PLR0913
         try:
             if choice == "Full calibration (phases 1-5)":
                 await _run_full_calibration(ctx, state)
-            elif choice == "Level balancing + EQ (phases 1-2)":
+            elif choice == "Flat measurements (phase 1)":
                 mode, ch_num = await ask_channel_mode(config, input_pipe)
                 channels = select_channels(
                     config, mode, start_from=ch_num, single=ch_num
                 )
                 state.measure_result = await run_measure_loop(ctx, channels)
+            elif choice == "EQ (phase 2)":
+                mode, ch_num = await ask_channel_mode(config, input_pipe)
+                channels = select_channels(
+                    config, mode, start_from=ch_num, single=ch_num
+                )
+                state.eq_predictions = await run_eq_loop(
+                    ctx, state.measure_result, channels
+                )
             elif choice == "Finetune EQ":
                 if state.measure_result is None:
                     console.print(
@@ -251,8 +260,8 @@ async def _dispatch_menu(  # noqa: PLR0913
                 state.measure_result.predicted_uuids = await run_finetune_loop(
                     ctx,
                     channels,
-                    state.measure_result.rta_uuids,
-                    state.measure_result.predicted_uuids,
+                    state.measure_result,
+                    state.eq_predictions,
                     iteration=state.finetune_iteration,
                 )
             elif choice == "Verification (phases 3-4)":
@@ -271,10 +280,15 @@ async def _run_full_calibration(
     state: _SessionState,
 ) -> None:
     """Execute the complete calibration pipeline using the unified flow."""
-    # Phase 1+2: measure + EQ
-    state.measure_result = await run_measure_loop(ctx)
+    # Phase 1: measure
+    state.measure_result = await run_measure_loop(ctx, channels=ctx.config.channels)
 
-    # Finetune loops — auto-determine max iterations from config
+    # Phase 2: EQ
+    state.eq_predictions = await run_eq_loop(
+        ctx, rta_uuids=state.measure_result, channels=ctx.config.channels
+    )
+
+    # Phase 3: Finetune loops — auto-determine max iterations from config
     max_finetune = max((ch.finetune_loops for ch in ctx.config.channels), default=0)
     for iteration in range(1, max_finetune + 1):
         eligible = eligible_finetune_channels(ctx.config.channels, iteration)
@@ -287,8 +301,8 @@ async def _run_full_calibration(
         state.measure_result.predicted_uuids = await run_finetune_loop(
             ctx,
             ctx.config.channels,
-            state.measure_result.rta_uuids,
-            state.measure_result.predicted_uuids,
+            state.measure_result,
+            state.eq_predictions,
             iteration=iteration,
         )
 
@@ -312,7 +326,8 @@ class _SessionState:
     """Mutable session state shared across menu iterations."""
 
     def __init__(self) -> None:
-        self.measure_result: MeasureResult | None = None
+        self.measure_result: dict[int, UUID] = {}
+        self.eq_predictions: dict[int, UUID] = {}
         self.finetune_iteration: int = 0
 
 

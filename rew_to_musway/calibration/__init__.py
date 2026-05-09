@@ -4,10 +4,10 @@ from ._combined import run_combined_measurements
 from ._eq import select_channels
 from ._levels import ChannelLevel, LevelOffsets, compute_two_stage_offsets
 from ._unified import (
-    MeasureResult,
     UnifiedContext,
     VerificationResult,
     eligible_finetune_channels,
+    run_eq_loop,
     run_finetune_loop,
     run_measure_loop,
     run_verification_loop,
@@ -17,12 +17,12 @@ from ._verification import save_session
 __all__ = [
     "ChannelLevel",
     "LevelOffsets",
-    "MeasureResult",
     "UnifiedContext",
     "VerificationResult",
     "compute_two_stage_offsets",
     "eligible_finetune_channels",
     "run_combined_measurements",
+    "run_eq_loop",
     "run_finetune_loop",
     "run_measure_loop",
     "run_verification_loop",

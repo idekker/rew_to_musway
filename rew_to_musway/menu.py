@@ -24,7 +24,8 @@ console = Console()
 
 MAIN_CHOICES = [
     "Full calibration (phases 1-5)",
-    "Level balancing + EQ (phases 1-2)",
+    "Flat measurements (phase 1)",
+    "EQ (phase 2)",
     "Finetune EQ",
     "Verification (phases 3-4)",
     "Combined measurements (phase 5)",
