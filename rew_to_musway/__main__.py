@@ -24,6 +24,7 @@ from rew_to_musway.amp import ManualAmp, MuswayAmp, TunestPCAmp
 from .calibration import (
     UnifiedContext,
     eligible_finetune_channels,
+    load_session,
     run_combined_measurements,
     run_eq_loop,
     run_finetune_loop,
@@ -205,7 +206,7 @@ async def _connect_with_retry(
 # ---------------------------------------------------------------------------
 
 
-async def _dispatch_menu(  # noqa: PLR0913
+async def _dispatch_menu(  # noqa: C901,PLR0912,PLR0913
     choice: str,
     config: Config,
     amp: AmpBackend,
@@ -223,7 +224,17 @@ async def _dispatch_menu(  # noqa: PLR0913
         playback=playback,
         session_dir=session_dir,
     )
-    if choice == "Save measurements (.mdat)":
+    if choice == "Load measurements (.mdat)":
+        if ctx.config.paths.mdat_input_file:
+            mdat_input_file = Path(ctx.config.paths.mdat_input_file).resolve()  # noqa: ASYNC240
+            state.measure_result, state.eq_predictions = await load_session(
+                rew,
+                mdat_input_file,
+                ctx.config.channels,
+            )
+        else:
+            console.print("No mdat input file configured (check config.yaml).")
+    elif choice == "Save measurements (.mdat)":
         await save_session(rew, session_dir)
     else:
         await ctx.playback.start_noise()
@@ -247,7 +258,7 @@ async def _dispatch_menu(  # noqa: PLR0913
                     ctx, state.measure_result, channels
                 )
             elif choice == "Finetune EQ":
-                if state.measure_result is None:
+                if len(state.measure_result) == 0 or len(state.eq_predictions) == 0:
                     console.print(
                         "[yellow]No measurement data — run phases 1-2 first.[/yellow]"
                     )

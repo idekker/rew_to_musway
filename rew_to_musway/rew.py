@@ -181,6 +181,10 @@ class REWController:
         logger.info("RTA saved, UUID: %s", uuid)
         return uuid
 
+    async def get_measurements(self) -> list[MeasurementSummary]:
+        """Return the Measurement dataclasses for all measurements."""
+        return await self.client.measurements.list()
+
     async def get_measurement(self, uuid: UUID) -> MeasurementSummary:
         """Return the Measurement dataclass for a given measurement UUID."""
         return await self.client.measurements.get(uuid)
@@ -469,6 +473,12 @@ class REWController:
         """Delete all measurements in REW."""
         logger.debug("Deleting all measurements")
         await self.client.measurements.delete_all()
+
+    async def load_measurements(self, path: str) -> None:
+        """Load measurements in REW."""
+        mdat_path = path.replace("\\", "/")
+        logger.info("Loading measurements from %s", mdat_path)
+        await self.client.measurements.load(mdat_path)
 
     async def save_all_measurements(self, path: str) -> None:
         """Save all measurements to an .mdat file."""

@@ -73,6 +73,7 @@ class ManualConfig:
 @dataclass
 class PathsConfig:
     output_dir: str = "./output"
+    mdat_input_file: str | None = None
 
 
 @dataclass
@@ -372,6 +373,7 @@ def load_config(path: str | Path) -> Config:  # noqa: PLR0915
     paths_raw = raw.get("paths", {})
     paths = PathsConfig(
         output_dir=str(paths_raw.get("output_dir", "./output")),
+        mdat_input_file=_optional_str(paths_raw.get("mdat_input_file")),
     )
 
     # Playback

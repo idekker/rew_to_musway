@@ -23,6 +23,7 @@ timers:
 
 paths:
   output_dir: "./output"
+  mdat_input_file: "./test_files/calibration_input.mdat"
 
 playback:
   mode: rew_generator                # manual | rew_generator

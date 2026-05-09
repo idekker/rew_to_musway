@@ -29,6 +29,7 @@ MAIN_CHOICES = [
     "Finetune EQ",
     "Verification (phases 3-4)",
     "Combined measurements (phase 5)",
+    "Load measurements (.mdat)",
     "Save measurements (.mdat)",
     "Quit",
 ]
