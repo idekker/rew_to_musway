@@ -227,6 +227,24 @@ class FilterSetting:
     gaindB: float | None = None
     q: float | None = None
 
+    def __init__(  # noqa: PLR0913
+        self,
+        index: int,
+        filter_type: str,
+        enabled: bool,  # noqa: FBT001
+        is_auto: bool,  # noqa: FBT001
+        frequency: float | None = None,
+        gain_db: float | None = None,
+        q: float | None = None,
+    ) -> None:
+        self.index = index
+        self.type = filter_type
+        self.enabled = enabled
+        self.isAuto = is_auto
+        self.frequency = frequency
+        self.gaindB = gain_db
+        self.q = q
+
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> FilterSetting:
         return cls(

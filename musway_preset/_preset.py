@@ -87,6 +87,13 @@ class MuswayPreset:
             raise ValueError(msg)
         return self._channels[channel - 1]
 
+    def set_channel(self, channel_nr: int, channel: Channel) -> None:
+        """Get a channel by number (1-indexed)."""
+        if channel_nr < 1 or channel_nr > NUM_CHANNELS:
+            msg = f"Channel must be 1-{NUM_CHANNELS}, got {channel}"
+            raise ValueError(msg)
+        self._channels[channel_nr - 1] = channel
+
     # -- Volume --------------------------------------------------------------
 
     def get_channel_level(self, channel: int) -> float:
