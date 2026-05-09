@@ -249,11 +249,11 @@ class FilterSetting:
     def from_dict(cls, d: dict[str, Any]) -> FilterSetting:
         return cls(
             index=d["index"],
-            type=d["type"],
+            filter_type=d["type"],
             enabled=d["enabled"],
-            isAuto=d["isAuto"],
+            is_auto=d["isAuto"],
             frequency=d.get("frequency"),
-            gaindB=d.get("gaindB"),
+            gain_db=d.get("gaindB"),
             q=d.get("q"),
         )
 
