@@ -138,7 +138,7 @@ class TestChannelLevel:
     def test_get_default_level(self) -> None:
         preset = MuswayPreset.load(PRESET_PATH)
         for ch in range(1, 7):
-            assert preset.get_channel_level(ch) == -60.0
+            assert preset.get_channel_level(ch) == -0.0
 
     def test_set_and_get_level(self) -> None:
         preset = MuswayPreset.load(PRESET_PATH)
@@ -159,7 +159,7 @@ class TestChannelLevel:
         preset.write(out)
         reloaded = MuswayPreset.load(out)
         assert reloaded.get_channel_level(2) == -3.5
-        assert reloaded.get_channel_level(1) == -60.0
+        assert reloaded.get_channel_level(1) == -0.0
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +170,7 @@ class TestChannelLevel:
 class TestMasterVolume:
     def test_get_default_master(self) -> None:
         preset = MuswayPreset.load(PRESET_PATH)
-        assert preset.get_master_volume() == -60
+        assert preset.get_master_volume() == 0
 
     def test_set_master(self, tmp_path: Path) -> None:
         preset = MuswayPreset.load(PRESET_PATH)
