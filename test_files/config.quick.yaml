@@ -48,9 +48,9 @@ eq:
     flatness_target: 1.0             # dB
     allow_narrow_filters_below_200hz: true
     vary_q_above_200hz: true
-    allow_low_shelf: true
+    allow_low_shelf: false
     low_shelf_range: [ -6.0, 6.0 ]     # dB
-    allow_high_shelf: true
+    allow_high_shelf: false
     high_shelf_range: [ -6.0, 6.0 ]    # dB
 
 levels:
