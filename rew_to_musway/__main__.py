@@ -261,7 +261,11 @@ async def _dispatch_menu(  # noqa: C901,PLR0912,PLR0913
                 if len(state.eq_predictions) == len(channels):
                     match_target = await ask_match_target(input_pipe)
                 state.eq_predictions = await run_eq_loop(
-                    ctx, state.measure_result, state.eq_predictions, channels, match_target
+                    ctx,
+                    state.measure_result,
+                    state.eq_predictions,
+                    channels,
+                    match_target,
                 )
             elif choice == "Finetune EQ":
                 if len(state.measure_result) == 0 or len(state.eq_predictions) == 0:
@@ -302,7 +306,10 @@ async def _run_full_calibration(
 
     # Phase 2: EQ
     state.eq_predictions = await run_eq_loop(
-        ctx, rta_uuids=state.measure_result, predicted_uuids=state.eq_predictions, channels=ctx.config.channels
+        ctx,
+        rta_uuids=state.measure_result,
+        predicted_uuids=state.eq_predictions,
+        channels=ctx.config.channels,
     )
 
     # Phase 3: Finetune loops — auto-determine max iterations from config

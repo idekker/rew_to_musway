@@ -167,6 +167,8 @@ async def run_eq_loop(
         Unified calibration context.
     rta_uuids:
         Per-channel flat RTA UUIDs from the measure loop.
+    predicted_uuids:
+        Per-channel EQ predicted UUIDs, possibly loaded from earlier mdat file
     channels:
         Channels to eq.  Defaults to all config channels.
     match_target:

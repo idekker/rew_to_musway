@@ -147,7 +147,7 @@ class TestMeasureLoop:
     ) -> None:
         channels = sample_channels[:2]
         rta_uuids = {channels[0].number: _UUID1, channels[1].number: _UUID2}
-        await run_eq_loop(ctx, rta_uuids, channels)
+        await run_eq_loop(ctx, rta_uuids, {}, channels)
         # EQ filters buffered
         assert mock_amp.set_eq_filters.call_count == 2
         # Level offsets NOT set during measure loop (only initial reset to 0)
