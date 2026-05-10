@@ -40,6 +40,11 @@ CHANNEL_MODE_CHOICES = [
     "Single channel",
 ]
 
+MATCH_TARGET_CHOICES = [
+    "Use matched target",
+    "Match target",
+]
+
 
 # ---------------------------------------------------------------------------
 # Display helpers
@@ -147,3 +152,21 @@ async def ask_channel_mode(
     if mode_result == "Start from channel...":
         return ("start_from", ch_num)
     return ("single", ch_num)
+
+
+async def ask_match_target(input_pipe: PipeInput) -> bool:
+    """Ask user whether to use matched target, or match target first.
+
+    Returns
+    -------
+    True when user requests to match target, or False otherwise.
+
+    """
+    _flush_input(input_pipe)
+    mode_result = await questionary.select(
+        "Match target option:",
+        choices=MATCH_TARGET_CHOICES,
+        input=input_pipe,
+    ).ask_async()
+
+    return bool(mode_result is None or mode_result == "Match target")

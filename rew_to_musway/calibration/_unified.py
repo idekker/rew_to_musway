@@ -153,6 +153,7 @@ async def run_eq_loop(
     ctx: UnifiedContext,
     rta_uuids: dict[int, UUID],
     channels: list[ChannelConfig],
+    match_target: bool = True,  # noqa: FBT001,FBT002
 ) -> dict[int, UUID]:
     """Phase 2: Calculate EQ for each channel in a single solo pass.
 
@@ -167,6 +168,10 @@ async def run_eq_loop(
         Per-channel flat RTA UUIDs from the measure loop.
     channels:
         Channels to eq.  Defaults to all config channels.
+    match_target:
+        Whether to run the match target step in the EQ pipeline.  If False,
+        the predicted measurement is generated directly from the basis (flat)
+        measurement, skipping the match step.
 
     Returns
     -------
@@ -184,9 +189,12 @@ async def run_eq_loop(
         assert ch_cfg.number in rta_uuids  # noqa: S101
         rta_uuid = rta_uuids[ch_cfg.number]
 
-        console.print(f"\n  Computing EQ for CH{ch_cfg.number} ({ch_cfg.name})...")
-        predicted = await _run_eq_pipeline(ctx, rta_uuid, ch_cfg)
-        predicted_uuids[ch_cfg.number] = predicted
+        if match_target or ch_cfg.number not in predicted_uuids:
+            console.print(f"\n  Computing EQ for CH{ch_cfg.number} ({ch_cfg.name})...")
+            predicted = await _run_eq_pipeline(ctx, rta_uuid, ch_cfg)
+            predicted_uuids[ch_cfg.number] = predicted
+        else:
+            console.print(f"\n  Use computed EQ for CH{ch_cfg.number}...")
 
         # Buffer EQ filters
         filters = await ctx.rew.get_filters(rta_uuid)

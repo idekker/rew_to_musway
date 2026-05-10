@@ -37,7 +37,7 @@ from .calibration import (
     select_channels,
 )
 from .config import Config, PlaybackMode, load_config
-from .menu import ask_channel_mode, ask_main_menu, show_status
+from .menu import ask_channel_mode, ask_main_menu, ask_match_target, show_status
 from .playback import ManualPlayback, PlaybackStrategy, REWGeneratorPlayback
 from .rew import REWController
 
@@ -257,8 +257,11 @@ async def _dispatch_menu(  # noqa: C901,PLR0912,PLR0913
                 channels = select_channels(
                     config, mode, start_from=ch_num, single=ch_num
                 )
+                match_target = True
+                if len(state.eq_predictions) == len(channels):
+                    match_target = await ask_match_target(input_pipe)
                 state.eq_predictions = await run_eq_loop(
-                    ctx, state.measure_result, channels
+                    ctx, state.measure_result, channels, match_target
                 )
             elif choice == "Finetune EQ":
                 if len(state.measure_result) == 0 or len(state.eq_predictions) == 0:
