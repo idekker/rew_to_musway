@@ -46,15 +46,15 @@ async def load_session(
             if c.name == channel_name:
                 channel_number = c.number
 
-                if elems[1] == "flat":
+                if elems[1] in {"flat", "finetune"}:
                     if is_eq:
                         console.print(
-                            rf"Loaded EQ prediction for channel {channel_number}: {channel_name}"
+                            rf"Loaded EQ prediction for channel {channel_number}: {channel_name} - {m.uuid}: {m.title}"
                         )
                         eq_predictions[channel_number] = m.uuid
                     else:
                         console.print(
-                            rf"Loaded RTA measurement for channel {channel_number}: {channel_name}"
+                            rf"Loaded RTA measurement for channel {channel_number}: {channel_name} - {m.uuid}: {m.title}"
                         )
                         rta_uuids[channel_number] = m.uuid
                 break
