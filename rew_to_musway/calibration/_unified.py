@@ -152,6 +152,7 @@ async def run_measure_loop(
 async def run_eq_loop(
     ctx: UnifiedContext,
     rta_uuids: dict[int, UUID],
+    predicted_uuids: dict[int, UUID],
     channels: list[ChannelConfig],
     match_target: bool = True,  # noqa: FBT001,FBT002
 ) -> dict[int, UUID]:
@@ -184,7 +185,6 @@ async def run_eq_loop(
     console.print("\n[bold]Phase 2: EQ[/bold]\n")
 
     # Batch compute EQ
-    predicted_uuids: dict[int, UUID] = {}
     for ch_cfg in channels:
         assert ch_cfg.number in rta_uuids  # noqa: S101
         rta_uuid = rta_uuids[ch_cfg.number]
@@ -200,6 +200,10 @@ async def run_eq_loop(
         filters = await ctx.rew.get_filters(rta_uuid)
         await ctx.amp.set_eq_filters(ch_cfg.number, filters)
 
+    # Prepare: configure filters, levels to 0
+    for ch_cfg in channels:
+        await ctx.amp.set_channel_level(ch_cfg.number, -60.0)
+        await ctx.amp.set_crossover(ch_cfg)
     ctx.amp.set_phase(PresetPhase.EQ)
     await ctx.amp.apply()
 
@@ -316,6 +320,10 @@ async def run_finetune_loop(
         # Update basis for next iteration
         rta_uuids[ch] = adjusted
 
+    # Prepare: configure filters, levels to 0
+    for ch_cfg in channels:
+        await ctx.amp.set_channel_level(ch_cfg.number, -60.0)
+        await ctx.amp.set_crossover(ch_cfg)
     ctx.amp.set_phase(PresetPhase.FINETUNE, iteration)
     await ctx.amp.apply()
 
