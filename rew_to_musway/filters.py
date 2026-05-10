@@ -12,13 +12,12 @@ if TYPE_CHECKING:
 
     from .config import ChannelConfig
 
-
 # ---------------------------------------------------------------------------
 # Match range
 # ---------------------------------------------------------------------------
 
 MIN_FREQ = 20.0
-MAX_FREQ = 20000.0
+MAX_FREQ = 18000.0
 
 
 def compute_match_range(

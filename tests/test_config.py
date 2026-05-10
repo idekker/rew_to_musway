@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 class TestComputeMatchRange:
     def test_no_filters(self) -> None:
         ch = ChannelConfig(number=1, name="LF", group="front")
-        assert compute_match_range(ch) == (20.0, 20000.0)
+        assert compute_match_range(ch) == (20.0, 18000.0)
 
     def test_highpass_only(self) -> None:
         ch = ChannelConfig(
@@ -41,7 +41,7 @@ class TestComputeMatchRange:
         )
         start, end = compute_match_range(ch, margin_octaves=1)
         assert start == 25.0  # 50 / 2^1
-        assert end == 20000.0
+        assert end == 18000.0
 
     def test_lowpass_only(self) -> None:
         ch = ChannelConfig(
@@ -94,7 +94,7 @@ class TestComputeMatchRange:
             ),
         )
         _start, end = compute_match_range(ch, margin_octaves=1)
-        assert end == 20000.0  # clamped
+        assert end == 18000.0  # clamped
 
     def test_manual_override(self) -> None:
         ch = ChannelConfig(
@@ -119,7 +119,7 @@ class TestComputeMatchRange:
         )
         start, end = compute_match_range(ch, margin_octaves=2)
         assert start == 50.0  # 200 / 4
-        assert end == 20000.0
+        assert end == 18000.0
 
 
 # ---------------------------------------------------------------------------
